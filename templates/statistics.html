@@ -1,0 +1,121 @@
+﻿{% extends "base.html" %}
+{% import "_macros.html" as ui %}
+
+{% block title %}Báo cáo Doanh thu — L'Atelier Bistro{% endblock %}
+{% block page_heading %}Báo cáo Doanh thu{% endblock %}
+{% block page_subtitle %}Tổng hợp doanh số bán hàng và hiệu suất thực đơn{% endblock %}
+
+{% block content %}
+<div class="space-y-4">
+  <!-- Unified Metrics Strip (1 Connected Panel, 4 Cells with Vertical Dividers) -->
+  <section class="toast-panel rounded-md overflow-hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-[#E2E8F0]">
+    <div class="p-4 lg:p-5">
+      <div class="text-xs font-medium text-slate-500">Tổng doanh thu</div>
+      <div class="font-mono text-2xl font-bold tabular-nums text-slate-900 mt-1.5">
+        {{ analytics.kpis.total_revenue }}
+      </div>
+      <div class="text-[11px] font-medium text-emerald-600 mt-1">Tổng hợp từ {{ analytics.kpis.total_orders }} hóa đơn</div>
+    </div>
+
+    <div class="p-4 lg:p-5">
+      <div class="text-xs font-medium text-slate-500">Tổng số hóa đơn</div>
+      <div class="font-mono text-2xl font-bold tabular-nums text-slate-900 mt-1.5">
+        {{ analytics.kpis.total_orders }}
+      </div>
+      <div class="text-[11px] text-slate-400 mt-1">Đơn đã thanh toán</div>
+    </div>
+
+    <div class="p-4 lg:p-5">
+      <div class="text-xs font-medium text-slate-500">Giá trị đơn trung bình</div>
+      <div class="font-mono text-2xl font-bold tabular-nums text-slate-900 mt-1.5">
+        {{ analytics.kpis.avg_order_value }}
+      </div>
+      <div class="text-[11px] text-slate-400 mt-1">Bình quân mỗi phiếu</div>
+    </div>
+
+    <div class="p-4 lg:p-5">
+      <div class="text-xs font-medium text-slate-500">Món đang kinh doanh</div>
+      <div class="font-mono text-2xl font-bold tabular-nums text-[#FF4C00] mt-1.5">
+        {{ analytics.kpis.active_items }} / 10
+      </div>
+      <div class="text-[11px] text-slate-400 mt-1">Sẵn sàng phục vụ</div>
+    </div>
+  </section>
+
+  <!-- Two-Column Enterprise Reporting Tables -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+    <!-- Revenue by Category -->
+    <section class="lg:col-span-5 toast-panel rounded-md overflow-hidden">
+      <div class="px-4 py-3 border-b border-[#E2E8F0] bg-white flex items-center justify-between">
+        <h2 class="font-heading text-sm font-bold text-slate-900">Doanh thu theo Danh mục</h2>
+        <span class="font-mono text-[11px] text-slate-500">4 nhóm món</span>
+      </div>
+
+      <div class="divide-y divide-[#E2E8F0]">
+        {% for row in analytics.revenue_by_category %}
+        <div class="p-4 border-l-4 {{ ui.cat_accent_border(row.category_id) }} space-y-2">
+          <div class="flex items-baseline justify-between gap-2">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="font-mono text-[11px] font-semibold text-slate-500">{{ row.category_id }}</span>
+              <span class="font-semibold text-[13px] text-slate-900 truncate">{{ row.category_name }}</span>
+            </div>
+            <div class="text-right shrink-0">
+              <span class="font-mono text-[13px] font-bold tabular-nums text-slate-900">{{ row.revenue }}</span>
+              <span class="font-mono text-xs tabular-nums text-slate-500 ml-1.5">{{ row.share }}%</span>
+            </div>
+          </div>
+
+          <div class="w-full h-2 bg-[#F4F5F7] rounded-sm overflow-hidden border border-[#E2E8F0]">
+            <div
+              class="h-full {{ ui.cat_dot_color(row.category_id) }}"
+              style="width: {{ row.share }}%;"
+            ></div>
+          </div>
+
+          <div class="flex items-center justify-between font-mono text-[11px] text-slate-400 tabular-nums">
+            <span>{{ row.orders }} phần đã bán</span>
+            <span>Tỷ trọng doanh số</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- Top Ordered Items -->
+    <section class="lg:col-span-7 toast-panel rounded-md overflow-hidden">
+      <div class="px-4 py-3 border-b border-[#E2E8F0] bg-white flex items-center justify-between">
+        <h2 class="font-heading text-sm font-bold text-slate-900">Top món bán chạy nhất</h2>
+        <span class="font-mono text-[11px] text-slate-500">Xếp hạng theo số lượng</span>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse text-[13px]">
+          <thead>
+            <tr class="bg-[#F8FAFC] border-b border-[#E2E8F0] text-[11px] uppercase tracking-wider text-slate-500">
+              <th class="py-2.5 px-4 font-semibold">Hạng</th>
+              <th class="py-2.5 px-4 font-semibold">Mã món</th>
+              <th class="py-2.5 px-4 font-semibold">Tên món &amp; Danh mục</th>
+              <th class="py-2.5 px-4 font-semibold text-right">Số lượng</th>
+              <th class="py-2.5 px-4 font-semibold text-right">Doanh thu</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-[#E2E8F0]">
+            {% for item in analytics.top_items %}
+            <tr class="hover:bg-slate-50/90 transition-colors">
+              <td class="py-2.5 px-4 whitespace-nowrap">{{ ui.rank_medal(loop.index) }}</td>
+              <td class="py-2.5 px-4 font-mono text-xs font-semibold tabular-nums text-slate-700">{{ item.item_id }}</td>
+              <td class="py-2.5 px-4">
+                <div class="font-semibold text-slate-900">{{ item.item_name }}</div>
+                <div class="text-xs text-slate-500">{{ item.category_name }}</div>
+              </td>
+              <td class="py-2.5 px-4 text-right font-mono font-semibold tabular-nums text-slate-900">{{ item.qty }}</td>
+              <td class="py-2.5 px-4 text-right font-mono font-bold tabular-nums text-slate-900">{{ item.revenue }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,147 @@
+﻿{% extends "base.html" %}
+{% import "_macros.html" as ui %}
+
+{% block title %}Tổng quan Thực đơn — L'Atelier Bistro{% endblock %}
+{% block page_heading %}Tổng quan Thực đơn{% endblock %}
+{% block page_subtitle %}Danh sách món ăn &amp; đồ uống đang kinh doanh{% endblock %}
+
+{% block content %}
+<div x-data="{ demoEmpty: false, q: '' }" class="space-y-4">
+  <!-- Unified Category Strip (Connected 4-column bar) -->
+  <section class="toast-panel rounded-md overflow-hidden grid grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x divide-[#E2E8F0]">
+    {% for cat in categories %}
+    {% set count = items | selectattr("category_id", "equalto", cat.category_id) | list | length %}
+    <div class="p-3.5 flex items-center justify-between gap-3 border-l-4 {{ ui.cat_accent_border(cat.category_id) }}">
+      <div class="min-w-0">
+        <div class="font-mono text-[11px] font-semibold text-slate-500">{{ cat.category_id }}</div>
+        <div class="font-heading text-sm font-bold text-slate-900 truncate mt-0.5">{{ cat.category_name }}</div>
+      </div>
+      <div class="text-right shrink-0">
+        <span class="font-mono text-lg font-bold tabular-nums text-slate-900">{{ count }}</span>
+        <span class="text-[11px] text-slate-500 ml-0.5">món</span>
+      </div>
+    </div>
+    {% endfor %}
+  </section>
+
+  <!-- Enterprise Data Table -->
+  <section class="toast-panel rounded-md overflow-hidden">
+    <!-- Integrated Table Toolbar -->
+    <div class="px-4 py-3 border-b border-[#E2E8F0] bg-white flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3 flex-1 min-w-[220px]">
+        <h2 class="font-heading text-sm font-bold text-slate-900 whitespace-nowrap">Thực đơn hiện hành</h2>
+        <div class="relative max-w-xs w-full">
+          <svg class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input
+            x-model="q"
+            type="text"
+            placeholder="Lọc nhanh theo tên hoặc mã..."
+            class="w-full pl-8 pr-3 py-1.5 text-xs bg-[#F4F5F7] border border-[#E2E8F0] rounded-md focus:outline-none focus:border-[#FF4C00] focus:bg-white"
+          />
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 shrink-0">
+        <button
+          type="button"
+          @click="demoEmpty = !demoEmpty"
+          :class="demoEmpty ? 'bg-[#111827] text-white border-[#111827]' : 'bg-white text-slate-700 border-[#E2E8F0] hover:bg-slate-50'"
+          class="btn-press px-3 py-1.5 rounded-md border text-xs font-medium"
+        >
+          <span x-text="demoEmpty ? 'Hiển thị danh sách' : 'Xem trạng thái trống'"></span>
+        </button>
+        <a
+          href="{{ url_for('manage_view') }}"
+          class="btn-press px-3 py-1.5 rounded-md bg-[#FF4C00] hover:bg-[#E04300] text-white text-xs font-semibold"
+        >
+          + Thêm món mới
+        </a>
+      </div>
+    </div>
+
+    <div x-show="!demoEmpty" class="overflow-x-auto">
+      <table class="w-full text-left border-collapse text-[13px]">
+        <thead>
+          <tr class="bg-[#F8FAFC] border-b border-[#E2E8F0] text-[11px] uppercase tracking-wider text-slate-500">
+            <th class="py-2.5 px-4 font-semibold">Mã</th>
+            <th class="py-2.5 px-4 font-semibold">Tên món</th>
+            <th class="py-2.5 px-4 font-semibold">Danh mục</th>
+            <th class="py-2.5 px-4 font-semibold">Phân loại</th>
+            <th class="py-2.5 px-4 font-semibold">Chi tiết chế biến</th>
+            <th class="py-2.5 px-4 font-semibold text-right">Giá gốc</th>
+            <th class="py-2.5 px-4 font-semibold text-right">Giá thực tế</th>
+            <th class="py-2.5 px-4 font-semibold">Trạng thái</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[#E2E8F0]">
+          {% for item in items %}
+          {% set surcharge = 10000 if (item.__class__.__name__ == 'DrinkItem' and item.size == 'L') else (5000 if (item.__class__.__name__ == 'DrinkItem' and item.size == 'M') else 0) %}
+          <tr
+            class="hover:bg-slate-50/90 transition-colors"
+            x-show="q === '' || '{{ item.item_id }} {{ item.item_name }}'.toLowerCase().includes(q.toLowerCase())"
+          >
+            <td class="py-2.5 px-4 font-mono text-xs font-semibold tabular-nums text-slate-700 border-l-4 {{ ui.cat_accent_border(item.category_id) }}">
+              {{ item.item_id }}
+            </td>
+            <td class="py-2.5 px-4 font-semibold text-slate-900">
+              {{ item.item_name }}
+            </td>
+            <td class="py-2.5 px-4 whitespace-nowrap text-xs text-slate-600">
+              <span class="inline-flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full {{ ui.cat_dot_color(item.category_id) }}"></span>
+                {{ category_map.get(item.category_id, item.category_id) }}
+              </span>
+            </td>
+            <td class="py-2.5 px-4 whitespace-nowrap">
+              {{ ui.type_badge(item) }}
+            </td>
+            <td class="py-2.5 px-4 whitespace-nowrap">
+              {{ ui.polymorphic_detail(item) }}
+            </td>
+            <td class="py-2.5 px-4 text-right font-mono tabular-nums text-slate-500 whitespace-nowrap">
+              {{ ui.vnd(item.price) }}
+            </td>
+            <td class="py-2.5 px-4 text-right font-mono font-bold tabular-nums text-slate-900 whitespace-nowrap">
+              {{ ui.vnd(item.price + surcharge) }}
+            </td>
+            <td class="py-2.5 px-4 whitespace-nowrap">
+              {{ ui.availability_badge(item.availability) }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Empty State -->
+    <div x-show="demoEmpty" x-cloak class="py-14 px-6 text-center bg-slate-50/50">
+      <div class="w-10 h-10 rounded-md bg-white border border-[#E2E8F0] mx-auto flex items-center justify-center text-slate-400 mb-3">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h10" />
+        </svg>
+      </div>
+      <h3 class="font-heading text-sm font-bold text-slate-900">Chưa có món ăn nào trong danh sách</h3>
+      <p class="text-xs text-slate-500 max-w-sm mx-auto mt-1">
+        Thực đơn đang trống hoặc không có món nào khớp với từ khóa lọc hiện tại.
+      </p>
+      <div class="mt-4 flex items-center justify-center gap-2">
+        <button
+          type="button"
+          @click="demoEmpty = false; q = ''"
+          class="btn-press px-3 py-1.5 rounded-md border border-[#E2E8F0] bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700"
+        >
+          Khôi phục danh sách
+        </button>
+        <a
+          href="{{ url_for('manage_view') }}"
+          class="btn-press px-3 py-1.5 rounded-md bg-[#FF4C00] hover:bg-[#E04300] text-white text-xs font-semibold"
+        >
+          + Thêm món mới
+        </a>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}

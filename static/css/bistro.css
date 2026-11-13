@@ -1,0 +1,66 @@
+﻿/* Toast POS & Back-office Design System */
+[x-cloak] {
+  display: none !important;
+}
+
+:root {
+  --bg-canvas: #f4f5f7;
+  --bg-surface: #ffffff;
+  --bg-nav: #111827;
+  --bg-nav-alt: #1e293b;
+  --ink-primary: #0f172a;
+  --ink-muted: #64748b;
+  --border-grid: #e2e8f0;
+  --toast-orange: #ff4c00;
+  --toast-orange-hover: #e04300;
+}
+
+body {
+  background-color: var(--bg-canvas);
+  color: var(--ink-primary);
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.toast-panel {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-grid);
+}
+
+.btn-press {
+  transition: transform 90ms ease, background-color 120ms ease, border-color 120ms ease;
+}
+
+.btn-press:active:not(:disabled) {
+  transform: scale(0.985);
+}
+
+.pos-tile {
+  transition: background-color 110ms ease, border-color 110ms ease, transform 90ms ease;
+}
+
+.pos-tile:hover:not(:disabled) {
+  background-color: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.pos-tile:active:not(:disabled) {
+  transform: scale(0.985);
+}
+
+.pos-scroll::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+.pos-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.pos-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}

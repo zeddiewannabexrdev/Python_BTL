@@ -1,0 +1,243 @@
+﻿{% extends "base.html" %}
+{% import "_macros.html" as ui %}
+
+{% block title %}Màn hình Gọi món (POS) — L'Atelier Bistro{% endblock %}
+{% block page_heading %}Màn hình Gọi món - POS{% endblock %}
+{% block page_subtitle %}Chọn món nhanh theo danh mục &amp; thanh toán tại quầy{% endblock %}
+
+{% block main_class %}flex-1 w-full p-0 lg:h-[calc(100vh-53px)] lg:overflow-hidden{% endblock %}
+
+{% block content %}
+<div
+  x-data="posTerminal()"
+  class="grid grid-cols-1 lg:grid-cols-[minmax(0,66%)_minmax(0,34%)] h-full"
+>
+  <!-- Left Column (66%): Touch Item Tiles (Scrolls Independently) -->
+  <section class="flex flex-col h-full overflow-hidden border-r border-[#E2E8F0] bg-[#F4F5F7]">
+    <!-- Category Color Filter Strip -->
+    <div class="px-4 py-2.5 bg-white border-b border-[#E2E8F0] flex flex-wrap items-center gap-1.5 shrink-0">
+      <button
+        type="button"
+        @click="selectedCat = ''"
+        :class="selectedCat === '' ? 'bg-[#111827] text-white border-[#111827]' : 'bg-white text-slate-700 border-[#E2E8F0] hover:bg-slate-50'"
+        class="btn-press px-3 py-1.5 rounded-md border text-xs font-semibold"
+      >
+        Tất cả ({{ items|length }})
+      </button>
+      {% for cat in categories %}
+      <button
+        type="button"
+        @click="selectedCat = '{{ cat.category_id }}'"
+        :class="selectedCat === '{{ cat.category_id }}' ? 'bg-[#111827] text-white border-[#111827]' : 'bg-white text-slate-700 border-[#E2E8F0] hover:bg-slate-50'"
+        class="btn-press inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-xs font-medium"
+      >
+        <span class="w-2 h-2 rounded-full {{ ui.cat_dot_color(cat.category_id) }}"></span>
+        <span>{{ cat.category_name }}</span>
+      </button>
+      {% endfor %}
+    </div>
+
+    <!-- Scrollable POS Touch Grid -->
+    <div class="flex-1 overflow-y-auto pos-scroll p-4">
+      <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2.5">
+        {% for item in items %}
+        <button
+          type="button"
+          x-show="selectedCat === '' || selectedCat === '{{ item.category_id }}'"
+          {% if not item.availability %}disabled{% endif %}
+          @click="addItem('{{ item.item_id }}', '{{ item.item_name }}', {{ item.price }})"
+          class="pos-tile text-left bg-white border border-[#E2E8F0] border-l-4 {{ ui.cat_accent_border(item.category_id) }} rounded-md p-3 flex flex-col justify-between min-h-[118px] {% if not item.availability %}opacity-45 bg-slate-100 cursor-not-allowed{% else %}cursor-pointer{% endif %}"
+        >
+          <!-- Top Row: Code & Availability Dot -->
+          <div class="flex items-center justify-between gap-2 w-full">
+            <span class="font-mono text-[11px] font-semibold tabular-nums text-slate-500">
+              {{ item.item_id }}
+            </span>
+            {% if item.availability %}
+            <span class="w-2 h-2 rounded-full bg-emerald-500" title="Đang bán"></span>
+            {% else %}
+            <span class="font-mono text-[10px] font-semibold text-rose-600 uppercase">Hết món</span>
+            {% endif %}
+          </div>
+
+          <!-- Middle Row: Item Name + Detail -->
+          <div class="my-2">
+            <div class="font-heading font-bold text-[13px] text-slate-900 leading-snug {% if not item.availability %}line-through text-slate-500{% endif %}">
+              {{ item.item_name }}
+            </div>
+            <div class="font-mono text-[11px] text-slate-500 mt-1">
+              {% if item.__class__.__name__ == 'FoodItem' %}
+                {{ item.preparation_time }} phút
+              {% else %}
+                Size {{ item.size }}
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Bottom Row: Price -->
+          <div class="font-mono text-sm font-bold tabular-nums text-slate-900">
+            {{ ui.vnd(item.price) }}
+          </div>
+        </button>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+
+  <!-- Right Column (34%): Full-Height Sticky Check Panel -->
+  <aside class="bg-white flex flex-col h-full overflow-hidden">
+    <!-- Check Header (#1E293B) -->
+    <div class="bg-[#1E293B] text-white px-4 py-3 flex items-center justify-between gap-2 shrink-0">
+      <div>
+        <div class="text-[11px] uppercase tracking-wider text-slate-300 font-semibold">Phiếu thanh toán</div>
+        <div class="font-mono text-sm font-bold tabular-nums mt-0.5">Đơn mới · Bàn #04</div>
+      </div>
+
+      <div class="flex items-center bg-[#111827] rounded-md p-0.5 border border-slate-700">
+        <button
+          type="button"
+          @click="panelTab = 'current'"
+          :class="panelTab === 'current' ? 'bg-[#FF4C00] text-white' : 'text-slate-300 hover:text-white'"
+          class="px-2.5 py-1 rounded text-[11px] font-semibold transition-colors"
+        >
+          Đơn hiện tại
+        </button>
+        <button
+          type="button"
+          @click="panelTab = 'history'"
+          :class="panelTab === 'history' ? 'bg-[#FF4C00] text-white' : 'text-slate-300 hover:text-white'"
+          class="px-2.5 py-1 rounded text-[11px] font-semibold transition-colors"
+        >
+          Đã lập ({{ orders|length }})
+        </button>
+      </div>
+    </div>
+
+    <!-- Tab 1: Current Draft Check -->
+    <div x-show="panelTab === 'current'" class="flex-1 flex flex-col overflow-hidden">
+      <div class="flex-1 overflow-y-auto pos-scroll divide-y divide-[#E2E8F0] px-4">
+        <template x-if="cart.length === 0">
+          <div class="py-16 text-center text-xs text-slate-400">
+            Chạm vào thẻ món bên trái để thêm vào phiếu thanh toán.
+          </div>
+        </template>
+
+        <template x-for="(entry, idx) in cart" :key="entry.item_id">
+          <div class="py-3 flex items-center justify-between gap-2">
+            <div class="min-w-0 flex-1">
+              <div class="font-semibold text-[13px] text-slate-900 truncate" x-text="entry.item_name"></div>
+              <div class="font-mono text-[11px] tabular-nums text-slate-500" x-text="entry.item_id + ' · ' + entry.price.toLocaleString('vi-VN') + 'đ'"></div>
+            </div>
+
+            <div class="flex items-center gap-1 shrink-0">
+              <button
+                type="button"
+                @click="entry.qty > 1 ? entry.qty-- : cart.splice(idx, 1)"
+                class="btn-press w-6 h-6 rounded border border-[#E2E8F0] bg-[#F4F5F7] hover:bg-slate-200 font-mono text-xs font-bold text-slate-700"
+              >-</button>
+              <span class="w-6 text-center font-mono text-xs font-semibold tabular-nums text-slate-900" x-text="entry.qty"></span>
+              <button
+                type="button"
+                @click="entry.qty++"
+                class="btn-press w-6 h-6 rounded border border-[#E2E8F0] bg-[#F4F5F7] hover:bg-slate-200 font-mono text-xs font-bold text-slate-700"
+              >+</button>
+            </div>
+
+            <div
+              class="w-24 text-right font-mono text-[13px] font-bold tabular-nums text-slate-900 shrink-0"
+              x-text="(entry.qty * entry.price).toLocaleString('vi-VN') + 'đ'"
+            ></div>
+          </div>
+        </template>
+      </div>
+
+      <!-- Bottom Fixed Action Footer -->
+      <div class="p-4 bg-[#F8FAFC] border-t border-[#E2E8F0] space-y-3 shrink-0">
+        <div class="space-y-1.5 text-xs">
+          <div class="flex items-center justify-between text-slate-600">
+            <span>Tạm tính (<span class="font-mono font-semibold" x-text="totalQty"></span> phần)</span>
+            <span class="font-mono font-semibold tabular-nums text-slate-900" x-text="cartTotal.toLocaleString('vi-VN') + 'đ'"></span>
+          </div>
+          <div class="flex items-center justify-between text-slate-600">
+            <span>Thuế &amp; Phí dịch vụ (0%)</span>
+            <span class="font-mono tabular-nums text-slate-500">0đ</span>
+          </div>
+        </div>
+
+        <form action="{{ url_for('orders_view') }}" method="post" class="grid grid-cols-3 gap-2 pt-1">
+          <button
+            type="button"
+            @click="cart = []"
+            class="btn-press col-span-1 py-2.5 px-3 rounded-md border border-[#E2E8F0] bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700"
+          >
+            Làm mới
+          </button>
+          <button
+            type="button"
+            @click="$dispatch('toast', { type: 'success', title: 'Đã lưu phiếu thanh toán', message: 'Tổng hóa đơn: ' + cartTotal.toLocaleString('vi-VN') + 'đ.' })"
+            class="btn-press col-span-2 py-2.5 px-3 rounded-md bg-[#FF4C00] hover:bg-[#E04300] text-white text-xs font-bold font-mono tabular-nums"
+          >
+            Thanh toán (<span x-text="cartTotal.toLocaleString('vi-VN') + 'đ'"></span>)
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Tab 2: 5 Sample Orders List (ORD01 - ORD05) -->
+    <div x-show="panelTab === 'history'" x-cloak class="flex-1 overflow-y-auto pos-scroll divide-y divide-[#E2E8F0]">
+      {% for ord in orders %}
+      <div class="p-4 hover:bg-slate-50 transition-colors space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="font-mono text-xs font-bold text-slate-900">{{ ord.order_id }}</span>
+          <span class="font-mono text-[11px] text-slate-500 tabular-nums">{{ ord.order_date }}</span>
+        </div>
+        <div class="flex flex-wrap gap-1">
+          {% for entry in ord["items"] %}
+          {% set m_item = item_map.get(entry.item_id) %}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#F4F5F7] border border-[#E2E8F0] text-[11px] text-slate-700">
+            <span class="font-mono font-semibold">{{ entry.item_id }}</span>
+            <span>{{ m_item.item_name if m_item else '' }}</span>
+            <span class="font-mono font-bold text-[#FF4C00]">×{{ entry.quantity }}</span>
+          </span>
+          {% endfor %}
+        </div>
+        <div class="flex items-center justify-between pt-1 text-xs">
+          <span class="text-slate-500">Tổng thanh toán</span>
+          <span class="font-mono font-bold tabular-nums text-slate-900">{{ ui.vnd(ord.total_bill) }}</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </aside>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function posTerminal() {
+    return {
+      selectedCat: '',
+      panelTab: 'current',
+      cart: [
+        { item_id: 'FD01', item_name: 'Bò bít tết sốt tiêu đen', price: 245000, qty: 1 },
+        { item_id: 'DR01', item_name: 'Trà đào cam sả', price: 55000, qty: 2 },
+      ],
+      get totalQty() {
+        return this.cart.reduce((s, it) => s + it.qty, 0);
+      },
+      get cartTotal() {
+        return this.cart.reduce((s, it) => s + it.price * it.qty, 0);
+      },
+      addItem(id, name, price) {
+        const found = this.cart.find((c) => c.item_id === id);
+        if (found) {
+          found.qty += 1;
+        } else {
+          this.cart.push({ item_id: id, item_name: name, price, qty: 1 });
+        }
+        this.panelTab = 'current';
+      },
+    };
+  }
+</script>
+{% endblock %}

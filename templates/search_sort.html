@@ -1,0 +1,218 @@
+﻿{% extends "base.html" %}
+{% import "_macros.html" as ui %}
+
+{% block title %}Tra cứu &amp; Sắp xếp — L'Atelier Bistro{% endblock %}
+{% block page_heading %}Tra cứu &amp; Sắp xếp{% endblock %}
+{% block page_subtitle %}Tìm kiếm đa điều kiện và sắp xếp danh sách thực đơn{% endblock %}
+
+{% block content %}
+<div
+  x-data="searchSortView()"
+  @keydown.window.meta.k.prevent="$refs.keywordInput.focus()"
+  @keydown.window.ctrl.k.prevent="$refs.keywordInput.focus()"
+  class="toast-panel rounded-md overflow-hidden"
+>
+  <!-- Integrated Filter & Sort Toolbar at Table Head -->
+  <div class="p-4 border-b border-[#E2E8F0] bg-white space-y-3">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2.5">
+      <div>
+        <label class="block text-[11px] font-medium text-slate-500 mb-1">Mã chính xác</label>
+        <input
+          x-model="exactId"
+          type="text"
+          placeholder="VD: FD01"
+          class="w-full px-2.5 py-1.5 text-xs bg-[#F4F5F7] border border-[#E2E8F0] rounded-md font-mono tabular-nums focus:outline-none focus:border-[#FF4C00] focus:bg-white"
+        />
+      </div>
+
+      <div class="lg:col-span-2">
+        <label class="block text-[11px] font-medium text-slate-500 mb-1">Tên món ăn / đồ uống</label>
+        <div class="relative">
+          <input
+            x-ref="keywordInput"
+            x-model="keyword"
+            type="text"
+            placeholder="Nhập từ khóa tìm kiếm..."
+            class="w-full pl-2.5 pr-11 py-1.5 text-xs bg-[#F4F5F7] border border-[#E2E8F0] rounded-md focus:outline-none focus:border-[#FF4C00] focus:bg-white"
+          />
+          <kbd class="hidden sm:inline-flex px-1.5 py-0.5 rounded bg-white border border-[#E2E8F0] font-mono text-[10px] text-slate-400 absolute right-2 top-1/2 -translate-y-1/2">⌘K</kbd>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-[11px] font-medium text-slate-500 mb-1">Danh mục</label>
+        <select
+          x-model="categoryId"
+          class="w-full px-2.5 py-1.5 text-xs bg-[#F4F5F7] border border-[#E2E8F0] rounded-md focus:outline-none focus:border-[#FF4C00] focus:bg-white"
+        >
+          <option value="">Tất cả danh mục</option>
+          {% for cat in categories %}
+          <option value="{{ cat.category_id }}">{{ cat.category_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-[11px] font-medium text-slate-500 mb-1">Khoảng giá (VNĐ)</label>
+        <div class="flex items-center gap-1 bg-[#F4F5F7] border border-[#E2E8F0] rounded-md px-2 py-1.5">
+          <input x-model="minPrice" type="number" placeholder="Từ" class="w-full bg-transparent font-mono text-xs tabular-nums focus:outline-none" />
+          <span class="text-slate-300">–</span>
+          <input x-model="maxPrice" type="number" placeholder="Đến" class="w-full bg-transparent font-mono text-xs tabular-nums focus:outline-none" />
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-[11px] font-medium text-slate-500 mb-1">Sắp xếp</label>
+        <div class="flex items-center">
+          <select
+            x-model="sortBy"
+            class="w-full px-2 py-1.5 text-xs bg-[#F4F5F7] border border-[#E2E8F0] rounded-l-md focus:outline-none focus:border-[#FF4C00]"
+          >
+            <option value="price">Theo Giá</option>
+            <option value="name">Theo Tên</option>
+          </select>
+          <button
+            type="button"
+            @click="sortOrder = (sortOrder === 'ASC' ? 'DESC' : 'ASC')"
+            class="btn-press px-2.5 py-1.5 bg-white border border-l-0 border-[#E2E8F0] rounded-r-md hover:bg-slate-50 font-mono text-[11px] font-semibold text-slate-700 shrink-0"
+            x-text="sortOrder"
+          ></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex items-center justify-between pt-2 border-t border-[#E2E8F0] text-xs">
+      <div class="font-mono text-slate-500 tabular-nums">
+        Kết quả: <span class="font-bold text-slate-900" x-text="filteredItems.length"></span> / {{ items|length }} món
+      </div>
+      <button
+        type="button"
+        @click="resetAll()"
+        class="text-xs font-medium text-[#FF4C00] hover:underline"
+      >
+        Xóa bộ lọc
+      </button>
+    </div>
+  </div>
+
+  <!-- Results Table -->
+  <div class="overflow-x-auto">
+    <table class="w-full text-left border-collapse text-[13px]">
+      <thead>
+        <tr class="bg-[#F8FAFC] border-b border-[#E2E8F0] text-[11px] uppercase tracking-wider text-slate-500">
+          <th class="py-2.5 px-4 font-semibold">Mã</th>
+          <th class="py-2.5 px-4 font-semibold">Tên món</th>
+          <th class="py-2.5 px-4 font-semibold">Danh mục</th>
+          <th class="py-2.5 px-4 font-semibold">Phân loại</th>
+          <th class="py-2.5 px-4 font-semibold">Chi tiết</th>
+          <th class="py-2.5 px-4 font-semibold text-right">Giá bán</th>
+          <th class="py-2.5 px-4 font-semibold">Trạng thái</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-[#E2E8F0]">
+        <template x-for="row in filteredItems" :key="row.item_id">
+          <tr class="hover:bg-slate-50/90 transition-colors">
+            <td
+              class="py-2.5 px-4 font-mono text-xs font-semibold tabular-nums text-slate-700 border-l-4"
+              :class="row.borderClass"
+              x-text="row.item_id"
+            ></td>
+            <td class="py-2.5 px-4 font-semibold text-slate-900" x-text="row.item_name"></td>
+            <td class="py-2.5 px-4 text-xs text-slate-600" x-text="row.category_name"></td>
+            <td class="py-2.5 px-4">
+              <span
+                class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium border"
+                :class="row.item_type === 'Food' ? 'bg-orange-50 text-orange-800 border-orange-200' : 'bg-blue-50 text-blue-800 border-blue-200'"
+                x-text="row.item_type === 'Food' ? 'Món ăn' : 'Đồ uống'"
+              ></span>
+            </td>
+            <td class="py-2.5 px-4 font-mono text-xs tabular-nums text-slate-600" x-text="row.detail"></td>
+            <td class="py-2.5 px-4 text-right font-mono font-bold tabular-nums text-slate-900" x-text="row.price.toLocaleString('vi-VN') + 'đ'"></td>
+            <td class="py-2.5 px-4">
+              <span
+                class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-medium border"
+                :class="row.availability ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-500 border-slate-200'"
+              >
+                <span class="w-1.5 h-1.5 rounded-full" :class="row.availability ? 'bg-emerald-600' : 'bg-slate-400'"></span>
+                <span x-text="row.availability ? 'Đang bán' : 'Tạm hết'"></span>
+              </span>
+            </td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+  </div>
+
+  <div x-show="filteredItems.length === 0" x-cloak class="py-12 px-6 text-center bg-slate-50/50">
+    <div class="font-heading text-sm font-bold text-slate-900">Không tìm thấy món phù hợp</div>
+    <p class="text-xs text-slate-500 mt-1">Thử điều chỉnh lại từ khóa hoặc khoảng giá.</p>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function searchSortView() {
+    const borderMap = {
+      CAT01: 'border-l-[#EA580C]',
+      CAT02: 'border-l-[#16A34A]',
+      CAT03: 'border-l-[#2563EB]',
+      CAT04: 'border-l-[#9333EA]',
+    };
+
+    const initialItems = [
+      {% for item in items %}
+      {
+        item_id: {{ item.item_id | tojson }},
+        item_name: {{ item.item_name | tojson }},
+        category_id: {{ item.category_id | tojson }},
+        category_name: {{ category_map.get(item.category_id, '') | tojson }},
+        borderClass: borderMap[{{ item.category_id | tojson }}] || 'border-l-slate-400',
+        item_type: {{ ('Food' if item.__class__.__name__ == 'FoodItem' else 'Drink') | tojson }},
+        detail: {{ ((item.preparation_time ~ ' phút') if item.__class__.__name__ == 'FoodItem' else ('Size ' ~ item.size)) | tojson }},
+        price: {{ item.price }},
+        availability: {{ 'true' if item.availability else 'false' }}
+      },
+      {% endfor %}
+    ];
+
+    return {
+      exactId: '',
+      keyword: '',
+      categoryId: '',
+      minPrice: '',
+      maxPrice: '',
+      sortBy: 'price',
+      sortOrder: 'ASC',
+      items: initialItems,
+      get filteredItems() {
+        const idQ = this.exactId.trim().toLowerCase();
+        const kw = this.keyword.trim().toLowerCase();
+        const filtered = this.items.filter((it) => {
+          if (idQ && it.item_id.toLowerCase() !== idQ) return false;
+          if (kw && !it.item_name.toLowerCase().includes(kw)) return false;
+          if (this.categoryId && it.category_id !== this.categoryId) return false;
+          if (this.minPrice !== '' && it.price < Number(this.minPrice)) return false;
+          if (this.maxPrice !== '' && it.price > Number(this.maxPrice)) return false;
+          return true;
+        });
+
+        return filtered.sort((a, b) => {
+          const mul = this.sortOrder === 'ASC' ? 1 : -1;
+          if (this.sortBy === 'price') return (a.price - b.price) * mul;
+          return a.item_name.localeCompare(b.item_name, 'vi') * mul;
+        });
+      },
+      resetAll() {
+        this.exactId = '';
+        this.keyword = '';
+        this.categoryId = '';
+        this.minPrice = '';
+        this.maxPrice = '';
+        this.sortBy = 'price';
+        this.sortOrder = 'ASC';
+      },
+    };
+  }
+</script>
+{% endblock %}

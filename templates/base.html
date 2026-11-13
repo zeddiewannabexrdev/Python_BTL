@@ -1,0 +1,359 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}L'Atelier Bistro — POS &amp; Quản lý nhà hàng{% endblock %}</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Inter"', 'system-ui', 'sans-serif'],
+            heading: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+        },
+      },
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/bistro.css') }}" />
+</head>
+<body
+  class="font-sans antialiased min-h-screen flex bg-[#F4F5F7] text-slate-900"
+  x-data="bistroShell()"
+  @toast.window="showToast($event.detail)"
+  @confirm-delete.window="openDeleteModal($event.detail)"
+  @keydown.escape.window="deleteModal.open = false; sidebarOpen = false; toastMenuOpen = false"
+>
+  <!-- Mobile Sidebar Backdrop -->
+  <div
+    x-show="sidebarOpen"
+    x-cloak
+    x-transition.opacity.duration.150ms
+    class="fixed inset-0 bg-slate-950/60 z-30 lg:hidden"
+    @click="sidebarOpen = false"
+  ></div>
+
+  <!-- Sidebar Navigation (#111827) -->
+  <aside
+    :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
+    class="fixed lg:static inset-y-0 left-0 z-40 w-60 bg-[#111827] text-slate-100 flex flex-col border-r border-slate-800 transition-transform duration-150 shrink-0"
+  >
+    <div class="px-4 h-[53px] border-b border-slate-800 flex items-center justify-between">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <span class="w-7 h-7 rounded-md bg-[#FF4C00] text-white font-heading font-bold text-sm flex items-center justify-center shrink-0">
+          LB
+        </span>
+        <div class="min-w-0">
+          <div class="font-heading text-sm font-bold tracking-tight text-white truncate">
+            L'Atelier Bistro
+          </div>
+          <div class="text-[11px] text-slate-400 truncate">
+            Back-office &amp; POS
+          </div>
+        </div>
+      </div>
+      <button
+        type="button"
+        class="lg:hidden text-slate-400 hover:text-white p-1 rounded"
+        @click="sidebarOpen = false"
+        aria-label="Đóng menu"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <nav class="flex-1 px-2.5 py-3 space-y-1 text-[13px]">
+      <a
+        href="{{ url_for('index_view') }}"
+        class="flex items-center gap-2.5 px-3 py-2 rounded-md font-medium transition-colors {% if active_tab == 'overview' %}bg-[#1E293B] text-white border-l-2 border-[#FF4C00]{% else %}text-slate-300 hover:bg-slate-800/70 hover:text-white{% endif %}"
+      >
+        <svg class="w-4 h-4 shrink-0 {% if active_tab == 'overview' %}text-[#FF4C00]{% else %}text-slate-400{% endif %}" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h10" />
+        </svg>
+        <span>Tổng quan Thực đơn</span>
+      </a>
+
+      <a
+        href="{{ url_for('manage_view') }}"
+        class="flex items-center gap-2.5 px-3 py-2 rounded-md font-medium transition-colors {% if active_tab == 'manage' %}bg-[#1E293B] text-white border-l-2 border-[#FF4C00]{% else %}text-slate-300 hover:bg-slate-800/70 hover:text-white{% endif %}"
+      >
+        <svg class="w-4 h-4 shrink-0 {% if active_tab == 'manage' %}text-[#FF4C00]{% else %}text-slate-400{% endif %}" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+        </svg>
+        <span>Quản lý Món &amp; Danh mục</span>
+      </a>
+
+      <a
+        href="{{ url_for('search_sort_view') }}"
+        class="flex items-center gap-2.5 px-3 py-2 rounded-md font-medium transition-colors {% if active_tab == 'search_sort' %}bg-[#1E293B] text-white border-l-2 border-[#FF4C00]{% else %}text-slate-300 hover:bg-slate-800/70 hover:text-white{% endif %}"
+      >
+        <svg class="w-4 h-4 shrink-0 {% if active_tab == 'search_sort' %}text-[#FF4C00]{% else %}text-slate-400{% endif %}" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <span>Tra cứu &amp; Sắp xếp</span>
+      </a>
+
+      <a
+        href="{{ url_for('orders_view') }}"
+        class="flex items-center gap-2.5 px-3 py-2 rounded-md font-medium transition-colors {% if active_tab == 'orders' %}bg-[#1E293B] text-white border-l-2 border-[#FF4C00]{% else %}text-slate-300 hover:bg-slate-800/70 hover:text-white{% endif %}"
+      >
+        <svg class="w-4 h-4 shrink-0 {% if active_tab == 'orders' %}text-[#FF4C00]{% else %}text-slate-400{% endif %}" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m-6 4h6m-6 4h3m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        <span>Màn hình Gọi món - POS</span>
+      </a>
+
+      <a
+        href="{{ url_for('statistics_view') }}"
+        class="flex items-center gap-2.5 px-3 py-2 rounded-md font-medium transition-colors {% if active_tab == 'statistics' %}bg-[#1E293B] text-white border-l-2 border-[#FF4C00]{% else %}text-slate-300 hover:bg-slate-800/70 hover:text-white{% endif %}"
+      >
+        <svg class="w-4 h-4 shrink-0 {% if active_tab == 'statistics' %}text-[#FF4C00]{% else %}text-slate-400{% endif %}" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18M9 17V9m4 8V5m4 12v-4" />
+        </svg>
+        <span>Báo cáo Doanh thu</span>
+      </a>
+    </nav>
+
+    <div class="px-4 py-3 border-t border-slate-800 text-xs text-slate-400 flex items-center justify-between">
+      <span>Quầy thu ngân #01</span>
+      <span class="inline-flex items-center gap-1.5 text-emerald-400 font-medium">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+        Sẵn sàng
+      </span>
+    </div>
+  </aside>
+
+  <!-- Main Workspace (Full-Viewport Edge-to-Edge) -->
+  <div class="flex-1 flex flex-col min-w-0">
+    <!-- Topbar (53px height) -->
+    <header class="sticky top-0 z-20 h-[53px] bg-white border-b border-[#E2E8F0] px-4 lg:px-6 flex items-center justify-between gap-4 shrink-0">
+      <div class="flex items-center gap-3 min-w-0">
+        <button
+          type="button"
+          class="lg:hidden p-1.5 rounded-md border border-[#E2E8F0] bg-white text-slate-800 hover:bg-slate-50"
+          @click="sidebarOpen = true"
+          aria-label="Mở menu"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+        <div class="flex items-baseline gap-2.5 min-w-0">
+          <h1 class="font-heading text-[15px] font-bold tracking-tight text-slate-900 truncate">
+            {% block page_heading %}Tổng quan Thực đơn{% endblock %}
+          </h1>
+          <span class="hidden md:inline text-xs text-slate-400 truncate">
+            {% block page_subtitle %}Quản lý thực đơn nhà hàng{% endblock %}
+          </span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2.5 shrink-0">
+        <span class="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#F4F5F7] border border-[#E2E8F0] font-mono text-[11px] font-medium text-slate-600 tabular-nums">
+          Ca tối · 13/11/2026
+        </span>
+
+        <!-- Subtle Notification / Alert Demo Popover Trigger -->
+        <div class="relative" @click.outside="toastMenuOpen = false">
+          <button
+            type="button"
+            @click="toastMenuOpen = !toastMenuOpen"
+            class="p-1.5 rounded-md border border-[#E2E8F0] bg-white hover:bg-slate-50 text-slate-600 relative"
+            title="Kiểm tra thông báo hệ thống"
+            aria-label="Thông báo hệ thống"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            <span class="w-1.5 h-1.5 rounded-full bg-[#FF4C00] absolute top-1 right-1"></span>
+          </button>
+
+          <div
+            x-show="toastMenuOpen"
+            x-cloak
+            x-transition.opacity.duration.100ms
+            class="absolute right-0 mt-1.5 w-52 bg-white border border-[#E2E8F0] rounded-lg shadow-lg p-2 z-50 space-y-1"
+          >
+            <div class="px-2 py-1 text-[11px] font-semibold text-slate-500">Thử trạng thái thông báo</div>
+            <button
+              type="button"
+              @click="toastMenuOpen = false; showToast({ type: 'success', title: 'Lưu thành công', message: 'Thông tin món ăn đã được cập nhật.' })"
+              class="w-full text-left px-2 py-1.5 rounded text-xs font-medium text-emerald-700 hover:bg-emerald-50"
+            >
+              Thông báo hợp lệ
+            </button>
+            <button
+              type="button"
+              @click="toastMenuOpen = false; showToast({ type: 'warning', title: 'Trùng mã món', message: 'Mã FD01 đã tồn tại trong thực đơn.' })"
+              class="w-full text-left px-2 py-1.5 rounded text-xs font-medium text-amber-700 hover:bg-amber-50"
+            >
+              Cảnh báo trùng mã
+            </button>
+            <button
+              type="button"
+              @click="toastMenuOpen = false; showToast({ type: 'error', title: 'Dữ liệu không hợp lệ', message: 'Giá bán phải lớn hơn 0đ.' })"
+              class="w-full text-left px-2 py-1.5 rounded text-xs font-medium text-rose-700 hover:bg-rose-50"
+            >
+              Lỗi nhập liệu
+            </button>
+          </div>
+        </div>
+
+        <div class="w-7 h-7 rounded-md bg-[#1E293B] text-white flex items-center justify-center font-mono text-[11px] font-semibold">
+          QL
+        </div>
+      </div>
+    </header>
+
+    <!-- View Content -->
+    <main class="{% block main_class %}flex-1 w-full p-4 lg:p-5{% endblock %}">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <!-- Global Delete Confirmation Modal -->
+  <div
+    x-show="deleteModal.open"
+    x-cloak
+    x-transition.opacity.duration.120ms
+    class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="deleteModalTitle"
+  >
+    <div
+      @click.outside="deleteModal.open = false"
+      class="bg-white border border-[#E2E8F0] rounded-lg w-full max-w-md shadow-xl overflow-hidden"
+    >
+      <div class="p-5 flex items-start gap-3">
+        <div class="w-9 h-9 rounded-md bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+          </svg>
+        </div>
+        <div class="min-w-0 flex-1">
+          <h2 id="deleteModalTitle" class="font-heading text-sm font-bold text-slate-900">
+            Xác nhận xóa
+          </h2>
+          <p class="text-xs text-slate-600 mt-1 leading-relaxed">
+            Bạn có chắc chắn muốn xóa <span class="font-mono font-semibold text-slate-900 bg-slate-100 px-1 py-0.5 rounded border border-slate-200" x-text="deleteModal.code"></span>
+            — <span class="font-medium text-slate-800" x-text="deleteModal.name"></span>?
+          </p>
+        </div>
+      </div>
+
+      <div class="px-5 py-3 bg-[#F4F5F7] border-t border-[#E2E8F0] flex items-center justify-end gap-2">
+        <button
+          type="button"
+          @click="deleteModal.open = false"
+          class="btn-press px-3.5 py-1.5 rounded-md border border-[#E2E8F0] bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700"
+        >
+          Hủy bỏ
+        </button>
+        <button
+          type="button"
+          @click="confirmDeleteDemo()"
+          class="btn-press px-3.5 py-1.5 rounded-md bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold"
+        >
+          Xóa khỏi danh sách
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Global Toast Notification Stack -->
+  <div class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 w-80 max-w-[calc(100vw-2rem)] pointer-events-none">
+    <template x-for="toast in toasts" :key="toast.id">
+      <div
+        x-transition:enter="transition ease-out duration-150"
+        x-transition:enter-start="opacity-0 translate-y-2"
+        x-transition:enter-end="opacity-100 translate-y-0"
+        x-transition:leave="transition ease-in duration-120"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="pointer-events-auto bg-white border rounded-md p-3 shadow-md flex items-start gap-2.5"
+        :class="{
+          'border-emerald-300': toast.type === 'success',
+          'border-amber-300': toast.type === 'warning',
+          'border-rose-300': toast.type === 'error'
+        }"
+      >
+        <span
+          class="w-2 h-2 rounded-full mt-1.5 shrink-0"
+          :class="{
+            'bg-emerald-600': toast.type === 'success',
+            'bg-amber-600': toast.type === 'warning',
+            'bg-rose-600': toast.type === 'error'
+          }"
+        ></span>
+        <div class="min-w-0 flex-1">
+          <div class="font-heading text-xs font-bold text-slate-900" x-text="toast.title"></div>
+          <div class="text-xs text-slate-600 mt-0.5 leading-snug" x-text="toast.message"></div>
+        </div>
+        <button
+          type="button"
+          @click="dismissToast(toast.id)"
+          class="text-slate-400 hover:text-slate-700 p-0.5"
+          aria-label="Đóng thông báo"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    </template>
+  </div>
+
+  <script>
+    function bistroShell() {
+      return {
+        sidebarOpen: false,
+        toastMenuOpen: false,
+        toasts: [],
+        deleteModal: {
+          open: false,
+          code: '',
+          name: '',
+        },
+        showToast({ type = 'success', title = 'Thông báo', message = '' }) {
+          const id = Date.now() + Math.random();
+          this.toasts.push({ id, type, title, message });
+          setTimeout(() => this.dismissToast(id), 3500);
+        },
+        dismissToast(id) {
+          this.toasts = this.toasts.filter((t) => t.id !== id);
+        },
+        openDeleteModal(detail) {
+          this.deleteModal.code = detail.code || '';
+          this.deleteModal.name = detail.name || '';
+          this.deleteModal.open = true;
+        },
+        confirmDeleteDemo() {
+          const code = this.deleteModal.code;
+          this.deleteModal.open = false;
+          this.showToast({
+            type: 'success',
+            title: 'Đã tiếp nhận yêu cầu',
+            message: `Đã gửi lệnh xóa mã ${code}.`,
+          });
+        },
+      };
+    }
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

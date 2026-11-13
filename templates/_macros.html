@@ -1,0 +1,68 @@
+﻿{% macro vnd(amount) -%}
+{{ "{:,.0f}".format(amount).replace(",", ".") }}đ
+{%- endmacro %}
+
+{% macro cat_accent_border(cat_id) -%}
+{% if cat_id == 'CAT01' %}border-l-[#EA580C]{% elif cat_id == 'CAT02' %}border-l-[#16A34A]{% elif cat_id == 'CAT03' %}border-l-[#2563EB]{% else %}border-l-[#9333EA]{% endif %}
+{%- endmacro %}
+
+{% macro cat_dot_color(cat_id) -%}
+{% if cat_id == 'CAT01' %}bg-[#EA580C]{% elif cat_id == 'CAT02' %}bg-[#16A34A]{% elif cat_id == 'CAT03' %}bg-[#2563EB]{% else %}bg-[#9333EA]{% endif %}
+{%- endmacro %}
+
+{% macro type_badge(item) -%}
+{% if item.__class__.__name__ == 'FoodItem' %}
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-medium bg-orange-50 text-orange-800 border border-orange-200">
+  Món ăn
+</span>
+{% else %}
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-medium bg-blue-50 text-blue-800 border border-blue-200">
+  Đồ uống
+</span>
+{% endif %}
+{%- endmacro %}
+
+{% macro availability_badge(avail) -%}
+{% if avail %}
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+  <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+  Đang bán
+</span>
+{% else %}
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-medium bg-slate-100 text-slate-500 border border-slate-200">
+  <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+  Tạm hết
+</span>
+{% endif %}
+{%- endmacro %}
+
+{% macro polymorphic_detail(item) -%}
+{% if item.__class__.__name__ == 'FoodItem' %}
+<span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-xs font-mono tabular-nums text-slate-700">
+  <svg class="w-3.5 h-3.5 text-slate-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" />
+  </svg>
+  {{ item.preparation_time }} phút
+</span>
+{% else %}
+<span class="inline-flex items-center rounded border border-slate-200 bg-slate-50 p-0.5 font-mono text-[11px]">
+  {% for sz in ['S', 'M', 'L'] %}
+  <span class="px-1.5 py-0.5 rounded-sm {% if item.size == sz %}bg-[#111827] text-white font-semibold{% else %}text-slate-400{% endif %}">
+    {{ sz }}
+  </span>
+  {% endfor %}
+</span>
+{% endif %}
+{%- endmacro %}
+
+{% macro rank_medal(index) -%}
+{% if index == 1 %}
+<span class="inline-flex items-center justify-center w-7 h-6 rounded bg-amber-100 text-amber-900 border border-amber-300 font-mono text-xs font-bold tabular-nums">#1</span>
+{% elif index == 2 %}
+<span class="inline-flex items-center justify-center w-7 h-6 rounded bg-slate-200 text-slate-800 border border-slate-300 font-mono text-xs font-bold tabular-nums">#2</span>
+{% elif index == 3 %}
+<span class="inline-flex items-center justify-center w-7 h-6 rounded bg-orange-100 text-orange-900 border border-orange-300 font-mono text-xs font-bold tabular-nums">#3</span>
+{% else %}
+<span class="inline-flex items-center justify-center w-7 h-6 font-mono text-xs font-semibold tabular-nums text-slate-500">#{{ index }}</span>
+{% endif %}
+{%- endmacro %}
