@@ -1,35 +1,35 @@
 ﻿# L'Atelier Bistro — Restaurant Menu Management System
 
-Ứng dụng quản lý thực đơn và gọi món (POS & Back-office) xây dựng theo kiến trúc OOP bằng Python (Flask, Jinja2, TailwindCSS, Alpine.js).
+A restaurant menu management and Point-of-Sale (POS & Back-office) application built with an OOP architecture in Python (Flask, Jinja2, TailwindCSS, Alpine.js).
 
-## Cấu trúc dự án
+## Project Structure
 
 ```text
 Python/
-├── app.py                     # Khởi chạy Flask Web (5 routes: /, /manage, /search-sort, /orders, /statistics)
-├── main_console.py            # Giao diện Console tương tác (Menu 1-10)
-├── requirements.txt           # Thư viện phụ thuộc (Flask, Jinja2)
+├── app.py                     # Flask web entry point (5 routes: /, /manage, /search-sort, /orders, /statistics)
+├── main_console.py            # Interactive CLI console menu (options 1-10)
+├── requirements.txt           # Dependencies (Flask, Jinja2)
 ├── data/
-│   └── mock_data.json         # Dữ liệu mẫu: 4 danh mục, 10 món ăn/đồ uống, 5 hóa đơn
+│   └── mock_data.json         # Sample data: 4 categories, 10 menu items, 5 orders
 ├── models/
-│   ├── category.py            # Lớp Category
-│   ├── menu_item.py           # Lớp trừu tượng MenuItem (ABC), FoodItem, DrinkItem
-│   └── order.py               # Lớp Order
+│   ├── category.py            # Category class
+│   ├── menu_item.py           # Abstract MenuItem (ABC), FoodItem, DrinkItem
+│   └── order.py               # Order class
 ├── services/
-│   ├── menu_service.py        # Stub quản lý thực đơn & danh mục
-│   ├── query_service.py       # Stub tìm kiếm & sắp xếp
-│   ├── order_report_service.py# Stub tạo đơn hàng & thống kê
-│   └── restaurant_manager.py  # Lớp tổng hợp đa kế thừa + nạp mock_data.json
+│   ├── menu_service.py        # Menu & category management stubs
+│   ├── query_service.py       # Search & sort stubs
+│   ├── order_report_service.py# Order & analytics stubs
+│   └── restaurant_manager.py  # Multiple-inheritance facade + mock_data.json loader
 ├── static/
-│   └── css/bistro.css         # CSS giao diện POS
-├── templates/                 # Giao diện Web Jinja2
+│   └── css/bistro.css         # POS & back-office styles
+├── templates/                 # Jinja2 HTML templates
 └── tests/
-    └── test_base.py           # Unit tests kiểm tra model, service stubs và 5 routes
+    └── test_base.py           # Unit tests for models, service stubs, and all 5 routes
 ```
 
-## Cài đặt & Chạy thử
+## Setup & Usage
 
-1. **Tạo môi trường ảo và cài thư viện:**
+1. **Create a virtual environment and install dependencies:**
    ```bash
    python -m venv .venv
    # Windows PowerShell:
@@ -40,22 +40,22 @@ Python/
    pip install -r requirements.txt
    ```
 
-2. **Chạy Web App (Flask):**
+2. **Run the Flask Web App:**
    ```bash
    python app.py
    ```
-   Truy cập trình duyệt tại `http://127.0.0.1:5000`.
+   Open `http://127.0.0.1:5000` in your browser.
 
-3. **Chạy Console App:**
+3. **Run the Console App:**
    ```bash
    python main_console.py
    ```
 
-4. **Chạy kiểm thử (Unit Tests):**
+4. **Run Unit Tests:**
    ```bash
    python -m unittest discover -s tests -v
    ```
 
-## Ghi chú phát triển nhóm
+## Team Integration Notes
 
-- Các hàm xử lý nghiệp vụ trong `services/` (`MenuService`, `QueryService`, `OrderReportService`) và các route POST/GET trong `app.py` hiện đang để sẵn comment `# TODO: Gắn hàm xử lý tại đây` để các thành viên ghép logic độc lập, tránh xung đột Git.
+- Business logic methods in `services/` (`MenuService`, `QueryService`, `OrderReportService`) and route handlers in `app.py` contain `# TODO: Gắn hàm xử lý tại đây` placeholders so team members can implement modules independently without Git conflicts.
