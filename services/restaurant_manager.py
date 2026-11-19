@@ -76,20 +76,15 @@ class RestaurantManager(MenuService, QueryService, OrderReportService):
         self._raw_orders = payload.get("orders", [])
         orders: list[Order] = []
         for raw in self._raw_orders:
-            mapped_items = [
-                {
-                    "item": item_lookup.get(entry["item_id"]),
-                    "item_id": entry["item_id"],
-                    "quantity": entry["quantity"],
-                    "unit_price": entry["unit_price"],
-                }
-                for entry in raw.get("items", [])
-            ]
-            orders.append(
-                Order(
-                    order_id=raw["order_id"],
-                    order_date=raw.get("order_date"),
-                    items=mapped_items,
-                )
+            order = Order(
+                order_id=raw["order_id"],
+                order_date=raw.get("order_date"),
             )
+            for entry in raw.get("items", []):
+                item_id = entry["item_id"]
+                item = item_lookup.get(item_id)
+                if item is None:
+                    raise ValueError(f"Món {item_id} không tồn tại trong thực đơn")
+                order.add_item_to_order(item, entry["quantity"])
+            orders.append(order)
         self._orders = orders
