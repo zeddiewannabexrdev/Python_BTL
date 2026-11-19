@@ -14,19 +14,20 @@ class TestBaseProject(unittest.TestCase):
         food.item_name = "Phở bò tái"
         self.assertEqual(food.item_name, "Phở bò tái")
         self.assertEqual(food.preparation_time, 12)
-        self.assertIsNone(food.calculate_price())
-        self.assertIsNone(food.display_info())
+        self.assertEqual(food.calculate_price(), 65000.0)
+        self.assertIn("Phở bò tái", food.display_info())
 
         drink = DrinkItem("D99", "Cà phê sữa", 35000, "CAT03", True, size="L")
         drink.size = "M"
         self.assertEqual(drink.size, "M")
-        self.assertIsNone(drink.calculate_price())
+        self.assertEqual(drink.calculate_price(), 35000.0)
 
         cat = Category("CAT99", "Món mới")
         self.assertIn("CAT99", str(cat))
 
-        order = Order("ORD-01", "2026-11-13", [{"item": food, "quantity": 1}])
-        self.assertIsNone(order.calculate_bill())
+        order = Order("ORD-01", "2026-11-13")
+        order.add_item_to_order(food, 1)
+        self.assertEqual(order.calculate_bill(), 65000.0)
 
     def test_restaurant_manager_inheritance_and_mock_data(self):
         self.assertTrue(issubclass(RestaurantManager, MenuService))
