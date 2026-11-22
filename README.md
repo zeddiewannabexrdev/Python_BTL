@@ -17,14 +17,16 @@ Python/
 │   └── order.py               # Order class
 ├── services/
 │   ├── menu_service.py        # Menu & category management stubs
-│   ├── query_service.py       # Search & sort stubs
-│   ├── order_report_service.py# Order & analytics stubs
-│   └── restaurant_manager.py  # Multiple-inheritance facade + mock_data.json loader
+│   ├── query_service.py       # Search & sort service interface
+│   ├── order_report_service.py# Order & analytics service interface
+│   ├── search_sort_order_manager.py # Search, sorting, and order workflows
+│   └── restaurant_manager.py  # Facade + mock_data.json loader
 ├── static/
 │   └── css/bistro.css         # POS & back-office styles
 ├── templates/                 # Jinja2 HTML templates
 └── tests/
-    └── test_base.py           # Unit tests for models, service stubs, and all 5 routes
+    ├── test_base.py           # Unit tests for models, manager, and all 5 routes
+    └── test_search_sort_order.py # Search, sorting, and order workflow tests
 ```
 
 ## Setup & Usage
@@ -58,4 +60,5 @@ Python/
 
 ## Team Integration Notes
 
-- Business logic methods in `services/` (`MenuService`, `QueryService`, `OrderReportService`) and route handlers in `app.py` contain `# TODO: Gắn hàm xử lý tại đây` placeholders so team members can implement modules independently without Git conflicts.
+- `SearchSortOrderManager` implements item search/filter/sort and order creation. `create_order` accepts an order ID and item lines such as `[{"item_id": "FD01", "quantity": 2}]`; it returns the calculated total and saves the order.
+- Menu-management methods in `MenuService`, analytics methods in `OrderReportService`, and route handlers in `app.py` still contain TODO placeholders.

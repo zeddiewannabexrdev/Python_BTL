@@ -2,7 +2,13 @@
 
 from app import app
 from models import Category, DrinkItem, FoodItem, MenuItem, Order
-from services import MenuService, OrderReportService, QueryService, RestaurantManager
+from services import (
+    MenuService,
+    OrderReportService,
+    QueryService,
+    RestaurantManager,
+    SearchSortOrderManager,
+)
 
 
 class TestBaseProject(unittest.TestCase):
@@ -14,24 +20,25 @@ class TestBaseProject(unittest.TestCase):
         food.item_name = "Phở bò tái"
         self.assertEqual(food.item_name, "Phở bò tái")
         self.assertEqual(food.preparation_time, 12)
-        self.assertIsNone(food.calculate_price())
+        self.assertEqual(food.calculate_price(), 65000)
         self.assertIsNone(food.display_info())
 
         drink = DrinkItem("D99", "Cà phê sữa", 35000, "CAT03", True, size="L")
         drink.size = "M"
         self.assertEqual(drink.size, "M")
-        self.assertIsNone(drink.calculate_price())
+        self.assertEqual(drink.calculate_price(), 35000)
 
         cat = Category("CAT99", "Món mới")
         self.assertIn("CAT99", str(cat))
 
         order = Order("ORD-01", "2026-11-13", [{"item": food, "quantity": 1}])
-        self.assertIsNone(order.calculate_bill())
+        self.assertEqual(order.calculate_bill(), 65000)
 
     def test_restaurant_manager_inheritance_and_mock_data(self):
         self.assertTrue(issubclass(RestaurantManager, MenuService))
         self.assertTrue(issubclass(RestaurantManager, QueryService))
         self.assertTrue(issubclass(RestaurantManager, OrderReportService))
+        self.assertTrue(issubclass(RestaurantManager, SearchSortOrderManager))
 
         manager = RestaurantManager()
         self.assertEqual(len(manager.categories), 4)
@@ -43,11 +50,10 @@ class TestBaseProject(unittest.TestCase):
         self.assertIsNone(manager.delete_item("FD01"))
         self.assertIsNone(manager.display_all_items())
         self.assertIsNone(manager.adjust_price_and_status("FD01"))
-        self.assertIsNone(manager.search_by_id("FD01"))
-        self.assertIsNone(manager.search_by_criteria())
-        self.assertIsNone(manager.sort_items())
-        self.assertIsNone(manager.create_order(None))
-        self.assertIsNone(manager.calculate_bill([]))
+        self.assertEqual(manager.search_by_id("FD01").item_id, "FD01")
+        self.assertEqual(len(manager.search_by_criteria()), 10)
+        self.assertEqual(len(manager.sort_items()), 10)
+        self.assertEqual(manager.calculate_bill([]), 0)
         self.assertIsNone(manager.stat_total_revenue())
         self.assertIsNone(manager.stat_revenue_by_category())
         self.assertIsNone(manager.stat_top_ordered_items())

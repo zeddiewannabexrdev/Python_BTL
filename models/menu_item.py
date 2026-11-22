@@ -95,7 +95,7 @@ class FoodItem(MenuItem):
         self._preparation_time = value
 
     def calculate_price(self) -> float:
-        pass
+        return self.price
 
     def display_info(self) -> str:
         pass
@@ -128,7 +128,7 @@ class DrinkItem(MenuItem):
         self._size = value
 
     def calculate_price(self) -> float:
-        pass
+        return self.price
 
     def display_info(self) -> str:
         pass

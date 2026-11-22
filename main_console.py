@@ -120,10 +120,18 @@ def handle_choice(choice: int, manager: RestaurantManager) -> bool:
             manager.adjust_price_and_status(item_id)
             print(f"[Stub] Đã gọi RestaurantManager.adjust_price_and_status('{item_id}').")
         elif sub == "b":
-            # TODO: Gắn hàm xử lý tại đây
-            manager.create_order(None)
-            manager.calculate_bill([])
-            print("[Stub] Đã gọi RestaurantManager.create_order() & calculate_bill().")
+            order_id = read_non_empty("Nhập mã đơn hàng: ")
+            raw_items = read_non_empty(
+                "Nhập món theo dạng MÃ_MÓN:SỐ_LƯỢNG, cách nhau bằng dấu phẩy: "
+            )
+            items = []
+            for entry in raw_items.split(","):
+                item_id, separator, raw_quantity = entry.strip().partition(":")
+                if not separator:
+                    raise ValueError("Mỗi món phải có dạng MÃ_MÓN:SỐ_LƯỢNG.")
+                items.append({"item_id": item_id.strip(), "quantity": int(raw_quantity)})
+            total = manager.create_order(order_id, items)
+            print(f"Đã lập đơn '{order_id}'. Tổng tiền: {total:,.0f}đ.")
         else:
             print("[Lỗi] Nhánh lựa chọn không hợp lệ (chỉ nhận 'a' hoặc 'b').")
 

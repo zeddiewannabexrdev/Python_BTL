@@ -39,7 +39,16 @@ class Order:
         self._items = value
 
     def calculate_bill(self) -> float:
-        pass
+        total = 0.0
+        for line in self._items:
+            unit_price = line.get("unit_price")
+            if unit_price is None:
+                item = line.get("item")
+                if item is None:
+                    raise ValueError("Each order line must include a unit price or item")
+                unit_price = item.calculate_price()
+            total += unit_price * line["quantity"]
+        return total
 
     def __str__(self) -> str:
         return f"Order #{self._order_id} ({self._order_date}) - {len(self._items)} món"
