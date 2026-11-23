@@ -68,8 +68,9 @@ class Order:
             raise ValueError("Món phải có item_id hợp lệ.")
         self._unit_price(item_obj)
 
+        item_size = getattr(item_obj, "size", None)
         for line in self._items:
-            if line["item_obj"].item_id == item_id:
+            if line["item_obj"].item_id == item_id and getattr(line["item_obj"], "size", None) == item_size:
                 line["quantity"] += int(quantity)
                 return
         self._items.append({"item_obj": item_obj, "quantity": int(quantity)})
@@ -93,6 +94,7 @@ class Order:
                 "item_id": item.item_id,
                 "item_name": getattr(item, "item_name", str(item.item_id)),
                 "category_id": getattr(item, "category_id", None),
+                "size": getattr(item, "size", None),
                 "quantity": quantity,
                 "unit_price": float(price),
                 "subtotal": float(price * quantity),

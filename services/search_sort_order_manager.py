@@ -1,4 +1,4 @@
-from models import MenuItem, Order
+from models import DrinkItem, MenuItem, Order
 
 from .order_report_service import OrderReportService
 from .query_service import QueryService
@@ -130,6 +130,19 @@ class SearchSortOrderManager(QueryService, OrderReportService):
                 raise ValueError(f"Menu item '{item_id}' does not exist")
             if not item.availability:
                 raise ValueError(f"Menu item '{item_id}' is not currently available")
+
+            requested_size = entry.get("size")
+            if requested_size is not None:
+                if not isinstance(item, DrinkItem):
+                    raise ValueError(f"Menu item '{item_id}' does not support size selection")
+                item = DrinkItem(
+                    item_id=item.item_id,
+                    item_name=item.item_name,
+                    price=item.price,
+                    category_id=item.category_id,
+                    availability=item.availability,
+                    size=str(requested_size),
+                )
 
             validated_lines.append((item, quantity))
 

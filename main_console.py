@@ -139,14 +139,17 @@ def handle_choice(choice: int, manager: RestaurantManager) -> bool:
         elif sub == "b":
             order_id = read_non_empty("Nhập mã đơn hàng: ")
             raw_items = read_non_empty(
-                "Nhập món theo dạng MÃ_MÓN:SỐ_LƯỢNG, cách nhau bằng dấu phẩy: "
+                "Nhập món dạng MÃ_MÓN:SỐ_LƯỢNG hoặc MÃ_MÓN:SỐ_LƯỢNG:SIZE (VD: FD01:1,DR01:2:S): "
             )
             items = []
             for entry in raw_items.split(","):
-                item_id, separator, raw_quantity = entry.strip().partition(":")
-                if not separator:
-                    raise ValueError("Mỗi món phải có dạng MÃ_MÓN:SỐ_LƯỢNG.")
-                items.append({"item_id": item_id.strip(), "quantity": int(raw_quantity)})
+                parts = [p.strip() for p in entry.strip().split(":")]
+                if len(parts) not in (2, 3) or not parts[0]:
+                    raise ValueError("Mỗi món phải có dạng MÃ_MÓN:SỐ_LƯỢNG hoặc MÃ_MÓN:SỐ_LƯỢNG:SIZE.")
+                line = {"item_id": parts[0], "quantity": int(parts[1])}
+                if len(parts) == 3 and parts[2]:
+                    line["size"] = parts[2].upper()
+                items.append(line)
             total = manager.create_order(order_id, items)
             print(f"Đã lập đơn '{order_id}'. Tổng tiền: {total:,.0f}đ.")
         else:

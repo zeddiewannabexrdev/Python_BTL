@@ -59,6 +59,28 @@ class TestMenuServiceAndReports(unittest.TestCase):
         self.assertEqual(added_total, 490000.0)
         self.assertEqual(self.manager.stat_total_revenue(), initial_revenue + 490000.0)
 
+    def test_drink_custom_size_when_ordering(self):
+        # DR01 base price 55,000, default size L -> order 1x Size S (49,500) + 1x Size L (66,000)
+        total = self.manager.create_order(
+            "ORD-SIZE",
+            [
+                {"item_id": "DR01", "quantity": 1, "size": "S"},
+                {"item_id": "DR01", "quantity": 1, "size": "L"},
+            ],
+        )
+        self.assertEqual(total, 115500.0)
+        order = self.manager.orders[-1]
+        self.assertEqual(len(order.items), 2)
+        self.assertEqual([line["size"] for line in order.to_dict()["items"]], ["S", "L"])
+        # Original menu item size must remain unchanged
+        self.assertEqual(self.manager.search_by_id("DR01").size, "L")
+
+        with self.assertRaises(ValueError):
+            self.manager.create_order("ORD-BAD-SIZE", [{"item_id": "DR01", "quantity": 1, "size": "XL"}])
+
+        with self.assertRaises(ValueError):
+            self.manager.create_order("ORD-FOOD-SIZE", [{"item_id": "FD01", "quantity": 1, "size": "M"}])
+
     def test_flask_live_crud_and_pos_endpoints(self):
         web_app.manager = RestaurantManager()
         client = web_app.app.test_client()
@@ -82,16 +104,17 @@ class TestMenuServiceAndReports(unittest.TestCase):
 
         order_resp = client.post(
             "/orders",
-            json={"order_id": "ORD-WEB", "items": [{"item_id": "DR99", "quantity": 2}]},
+            json={"order_id": "ORD-WEB", "items": [{"item_id": "DR99", "quantity": 2, "size": "S"}]},
         )
         self.assertEqual(order_resp.status_code, 201)
         data = order_resp.get_json()
         self.assertTrue(data["ok"])
-        self.assertEqual(data["total"], 120000.0)
+        self.assertEqual(data["total"], 90000.0)
+        self.assertEqual(data["order"]["items"][0]["size"], "S")
 
         stats_resp = client.get("/statistics")
         self.assertEqual(stats_resp.status_code, 200)
-        self.assertIn("3.171.000đ", stats_resp.get_data(as_text=True))
+        self.assertIn("3.141.000đ", stats_resp.get_data(as_text=True))
 
         search_resp = client.get("/search-sort?exact_id=DR99")
         self.assertEqual(search_resp.status_code, 200)
