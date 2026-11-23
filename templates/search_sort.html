@@ -170,7 +170,7 @@
         borderClass: borderMap[{{ item.category_id | tojson }}] || 'border-l-slate-400',
         item_type: {{ ('Food' if item.__class__.__name__ == 'FoodItem' else 'Drink') | tojson }},
         detail: {{ ((item.preparation_time ~ ' phút') if item.__class__.__name__ == 'FoodItem' else ('Size ' ~ item.size)) | tojson }},
-        price: {{ item.price }},
+        price: {{ item.calculate_price() }},
         availability: {{ 'true' if item.availability else 'false' }}
       },
       {% endfor %}

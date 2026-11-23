@@ -162,23 +162,25 @@
       </div>
     </section>
 
-    <section class="lg:col-span-4 toast-panel rounded-md p-4 space-y-3">
-      <h2 class="font-heading text-sm font-bold text-slate-900 border-b border-[#E2E8F0] pb-2.5">Thêm danh mục thực đơn</h2>
-      <div>
-        <label class="block text-xs font-medium text-slate-600 mb-1">Mã danh mục</label>
-        <input type="text" placeholder="VD: CAT05" class="w-full px-3 py-1.5 rounded-md border border-[#E2E8F0] bg-[#F4F5F7] font-mono text-xs focus:outline-none focus:border-[#FF4C00] focus:bg-white" />
-      </div>
-      <div>
-        <label class="block text-xs font-medium text-slate-600 mb-1">Tên danh mục</label>
-        <input type="text" placeholder="VD: Món ăn kèm" class="w-full px-3 py-1.5 rounded-md border border-[#E2E8F0] bg-[#F4F5F7] text-xs focus:outline-none focus:border-[#FF4C00] focus:bg-white" />
-      </div>
-      <button
-        type="button"
-        @click="$dispatch('toast', { type: 'success', title: 'Đã lưu danh mục', message: 'Danh mục mới đã được thêm vào danh sách.' })"
-        class="btn-press w-full py-2 px-3 rounded-md bg-[#FF4C00] hover:bg-[#E04300] text-white text-xs font-semibold"
-      >
-        + Tạo danh mục
-      </button>
+    <section class="lg:col-span-4 toast-panel rounded-md p-4">
+      <h2 class="font-heading text-sm font-bold text-slate-900 border-b border-[#E2E8F0] pb-2.5 mb-3">Thêm danh mục thực đơn</h2>
+      <form action="{{ url_for('manage_view') }}" method="post" class="space-y-3">
+        <input type="hidden" name="action" value="add_category" />
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Mã danh mục</label>
+          <input type="text" name="category_id" required placeholder="VD: CAT05" class="w-full px-3 py-1.5 rounded-md border border-[#E2E8F0] bg-[#F4F5F7] font-mono text-xs focus:outline-none focus:border-[#FF4C00] focus:bg-white" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-600 mb-1">Tên danh mục</label>
+          <input type="text" name="category_name" required placeholder="VD: Món ăn kèm" class="w-full px-3 py-1.5 rounded-md border border-[#E2E8F0] bg-[#F4F5F7] text-xs focus:outline-none focus:border-[#FF4C00] focus:bg-white" />
+        </div>
+        <button
+          type="submit"
+          class="btn-press w-full py-2 px-3 rounded-md bg-[#FF4C00] hover:bg-[#E04300] text-white text-xs font-semibold"
+        >
+          + Tạo danh mục
+        </button>
+      </form>
     </section>
   </div>
 
@@ -222,109 +224,113 @@
           </button>
         </div>
 
-        <!-- Drawer Form Body -->
-        <form action="{{ url_for('manage_view') }}" method="post" class="flex-1 overflow-y-auto p-5 space-y-5 text-sm">
-          <!-- Group 1: Loại món -->
-          <div class="space-y-2">
-            <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">1. Phân loại món</div>
-            <div class="grid grid-cols-2 gap-2">
-              <label
-                class="flex items-center gap-2 p-2.5 rounded-md border cursor-pointer"
-                :class="drawer.form.type === 'food' ? 'border-[#FF4C00] bg-orange-50/60' : 'border-[#E2E8F0] bg-[#F4F5F7]'"
-              >
-                <input type="radio" name="item_type" value="food" x-model="drawer.form.type" class="accent-[#FF4C00]" />
-                <span class="text-xs font-semibold text-slate-900">Món ăn</span>
-              </label>
-              <label
-                class="flex items-center gap-2 p-2.5 rounded-md border cursor-pointer"
-                :class="drawer.form.type === 'drink' ? 'border-[#2563EB] bg-blue-50/60' : 'border-[#E2E8F0] bg-[#F4F5F7]'"
-              >
-                <input type="radio" name="item_type" value="drink" x-model="drawer.form.type" class="accent-[#2563EB]" />
-                <span class="text-xs font-semibold text-slate-900">Đồ uống</span>
-              </label>
-            </div>
-          </div>
+        <!-- Drawer Form -->
+        <form action="{{ url_for('manage_view') }}" method="post" class="flex-1 flex flex-col overflow-hidden text-sm">
+          <input type="hidden" name="action" :value="drawer.mode === 'edit' ? 'update_item' : 'add_item'" />
 
-          <!-- Group 2: Thông tin chung -->
-          <div class="space-y-3 pt-3 border-t border-[#E2E8F0]">
-            <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">2. Thông tin chung</div>
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block text-xs font-medium text-slate-600 mb-1">Mã món</label>
-                <input type="text" x-model="drawer.form.item_id" placeholder="VD: FD07" class="w-full px-3 py-1.5 rounded-md border border-[#E2E8F0] font-mono text-xs tabular-nums focus:outline-none focus:border-[#FF4C00]" />
-              </div>
-              <div>
-                <label class="block text-xs font-medium text-slate-600 mb-1">Danh mục</label>
-                <select x-model="drawer.form.category_id" class="w-full px-3 py-1.5 rounded-md border border-[#E2E8F0] text-xs focus:outline-none focus:border-[#FF4C00]">
-                  {% for cat in categories %}
-                  <option value="{{ cat.category_id }}">{{ cat.category_name }}</option>
-                  {% endfor %}
-                </select>
+          <div class="flex-1 overflow-y-auto p-5 space-y-5">
+            <!-- Group 1: Loại món -->
+            <div class="space-y-2">
+              <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">1. Phân loại món</div>
+              <div class="grid grid-cols-2 gap-2">
+                <label
+                  class="flex items-center gap-2 p-2.5 rounded-md border cursor-pointer"
+                  :class="drawer.form.type === 'food' ? 'border-[#FF4C00] bg-orange-50/60' : 'border-[#E2E8F0] bg-[#F4F5F7]'"
+                >
+                  <input type="radio" name="item_type" value="food" x-model="drawer.form.type" :disabled="drawer.mode === 'edit'" class="accent-[#FF4C00]" />
+                  <span class="text-xs font-semibold text-slate-900">Món ăn</span>
+                </label>
+                <label
+                  class="flex items-center gap-2 p-2.5 rounded-md border cursor-pointer"
+                  :class="drawer.form.type === 'drink' ? 'border-[#2563EB] bg-blue-50/60' : 'border-[#E2E8F0] bg-[#F4F5F7]'"
+                >
+                  <input type="radio" name="item_type" value="drink" x-model="drawer.form.type" :disabled="drawer.mode === 'edit'" class="accent-[#2563EB]" />
+                  <span class="text-xs font-semibold text-slate-900">Đồ uống</span>
+                </label>
               </div>
             </div>
 
-            <div>
-              <label class="block text-xs font-medium text-slate-600 mb-1">Tên món</label>
-              <input type="text" x-model="drawer.form.item_name" placeholder="VD: Cơm chiên hải sản" class="w-full px-3 py-1.5 rounded-md border border-[#E2E8F0] text-xs focus:outline-none focus:border-[#FF4C00]" />
-            </div>
-          </div>
-
-          <!-- Group 3: Định giá & Thông số riêng -->
-          <div class="space-y-3 pt-3 border-t border-[#E2E8F0]">
-            <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">3. Định giá &amp; Chế biến</div>
-            <div class="grid grid-cols-2 gap-3 items-start">
-              <div>
-                <label class="block text-xs font-medium text-slate-600 mb-1">Giá bán (VNĐ)</label>
-                <input type="number" x-model="drawer.form.price" placeholder="145000" class="w-full px-3 py-1.5 rounded-md border border-[#E2E8F0] font-mono text-xs tabular-nums focus:outline-none focus:border-[#FF4C00]" />
+            <!-- Group 2: Thông tin chung -->
+            <div class="space-y-3 pt-3 border-t border-[#E2E8F0]">
+              <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">2. Thông tin chung</div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-medium text-slate-600 mb-1">Mã món</label>
+                  <input type="text" name="item_id" required :readonly="drawer.mode === 'edit'" x-model="drawer.form.item_id" placeholder="VD: FD07" class="w-full px-3 py-1.5 rounded-md border border-[#E2E8F0] font-mono text-xs tabular-nums focus:outline-none focus:border-[#FF4C00] read-only:bg-slate-100" />
+                </div>
+                <div>
+                  <label class="block text-xs font-medium text-slate-600 mb-1">Danh mục</label>
+                  <select name="category_id" x-model="drawer.form.category_id" class="w-full px-3 py-1.5 rounded-md border border-[#E2E8F0] text-xs focus:outline-none focus:border-[#FF4C00]">
+                    {% for cat in categories %}
+                    <option value="{{ cat.category_id }}">{{ cat.category_name }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
               </div>
 
               <div>
-                <div x-show="drawer.form.type === 'food'">
-                  <label class="block text-xs font-medium text-slate-600 mb-1">Thời gian (phút)</label>
-                  <input type="number" x-model="drawer.form.prep_time" class="w-full px-3 py-1.5 rounded-md border border-[#E2E8F0] font-mono text-xs tabular-nums focus:outline-none focus:border-[#FF4C00]" />
+                <label class="block text-xs font-medium text-slate-600 mb-1">Tên món</label>
+                <input type="text" name="item_name" required x-model="drawer.form.item_name" placeholder="VD: Cơm chiên hải sản" class="w-full px-3 py-1.5 rounded-md border border-[#E2E8F0] text-xs focus:outline-none focus:border-[#FF4C00]" />
+              </div>
+            </div>
+
+            <!-- Group 3: Định giá & Thông số riêng -->
+            <div class="space-y-3 pt-3 border-t border-[#E2E8F0]">
+              <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">3. Định giá &amp; Chế biến</div>
+              <div class="grid grid-cols-2 gap-3 items-start">
+                <div>
+                  <label class="block text-xs font-medium text-slate-600 mb-1">Giá bán (VNĐ)</label>
+                  <input type="number" name="price" min="0" required x-model="drawer.form.price" placeholder="145000" class="w-full px-3 py-1.5 rounded-md border border-[#E2E8F0] font-mono text-xs tabular-nums focus:outline-none focus:border-[#FF4C00]" />
                 </div>
 
-                <div x-show="drawer.form.type === 'drink'" x-cloak>
-                  <label class="block text-xs font-medium text-slate-600 mb-1">Kích cỡ ly</label>
-                  <div class="grid grid-cols-3 gap-1 bg-[#F4F5F7] p-0.5 rounded-md border border-[#E2E8F0]">
-                    <template x-for="sz in ['S', 'M', 'L']" :key="sz">
-                      <button
-                        type="button"
-                        @click="drawer.form.size = sz"
-                        :class="drawer.form.size === sz ? 'bg-[#111827] text-white font-semibold' : 'text-slate-600'"
-                        class="py-1 rounded font-mono text-xs"
-                        x-text="sz"
-                      ></button>
-                    </template>
+                <div>
+                  <div x-show="drawer.form.type === 'food'">
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Thời gian (phút)</label>
+                    <input type="number" name="preparation_time" min="0" x-model="drawer.form.prep_time" class="w-full px-3 py-1.5 rounded-md border border-[#E2E8F0] font-mono text-xs tabular-nums focus:outline-none focus:border-[#FF4C00]" />
+                  </div>
+
+                  <div x-show="drawer.form.type === 'drink'" x-cloak>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Kích cỡ ly</label>
+                    <input type="hidden" name="size" :value="drawer.form.size" />
+                    <div class="grid grid-cols-3 gap-1 bg-[#F4F5F7] p-0.5 rounded-md border border-[#E2E8F0]">
+                      <template x-for="sz in ['S', 'M', 'L']" :key="sz">
+                        <button
+                          type="button"
+                          @click="drawer.form.size = sz"
+                          :class="drawer.form.size === sz ? 'bg-[#111827] text-white font-semibold' : 'text-slate-600'"
+                          class="py-1 rounded font-mono text-xs"
+                          x-text="sz"
+                        ></button>
+                      </template>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <label class="inline-flex items-center gap-2 pt-1 cursor-pointer">
-              <input type="checkbox" x-model="drawer.form.availability" class="w-4 h-4 accent-[#FF4C00] rounded" />
-              <span class="text-xs font-medium text-slate-700">Đang phục vụ tại quầy</span>
-            </label>
+              <label class="inline-flex items-center gap-2 pt-1 cursor-pointer">
+                <input type="checkbox" name="availability" x-model="drawer.form.availability" class="w-4 h-4 accent-[#FF4C00] rounded" />
+                <span class="text-xs font-medium text-slate-700">Đang phục vụ tại quầy</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Drawer Footer -->
+          <div class="px-5 py-3.5 bg-[#F4F5F7] border-t border-[#E2E8F0] flex items-center justify-end gap-2 shrink-0">
+            <button
+              type="button"
+              @click="drawer.open = false"
+              class="btn-press px-4 py-2 rounded-md border border-[#E2E8F0] bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700"
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              class="btn-press px-4 py-2 rounded-md bg-[#FF4C00] hover:bg-[#E04300] text-white text-xs font-semibold"
+            >
+              Lưu thay đổi
+            </button>
           </div>
         </form>
-
-        <!-- Drawer Footer -->
-        <div class="px-5 py-3.5 bg-[#F4F5F7] border-t border-[#E2E8F0] flex items-center justify-end gap-2 shrink-0">
-          <button
-            type="button"
-            @click="drawer.open = false"
-            class="btn-press px-4 py-2 rounded-md border border-[#E2E8F0] bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700"
-          >
-            Hủy
-          </button>
-          <button
-            type="button"
-            @click="drawer.open = false; $dispatch('toast', { type: 'success', title: 'Đã lưu món', message: 'Thông tin món ăn đã được ghi nhận.' })"
-            class="btn-press px-4 py-2 rounded-md bg-[#FF4C00] hover:bg-[#E04300] text-white text-xs font-semibold"
-          >
-            Lưu thay đổi
-          </button>
-        </div>
       </div>
     </div>
   </div>
@@ -368,7 +374,12 @@
             message: `Danh mục ${code} đang có ${count} món ăn.`,
           });
         } else {
-          this.$dispatch('confirm-delete', { code, name });
+          this.$dispatch('confirm-delete', {
+            code,
+            name,
+            actionName: 'delete_category',
+            fieldName: 'category_id',
+          });
         }
       },
     };

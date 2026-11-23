@@ -77,7 +77,6 @@
         </thead>
         <tbody class="divide-y divide-[#E2E8F0]">
           {% for item in items %}
-          {% set surcharge = 10000 if (item.__class__.__name__ == 'DrinkItem' and item.size == 'L') else (5000 if (item.__class__.__name__ == 'DrinkItem' and item.size == 'M') else 0) %}
           <tr
             class="hover:bg-slate-50/90 transition-colors"
             x-show="q === '' || '{{ item.item_id }} {{ item.item_name }}'.toLowerCase().includes(q.toLowerCase())"
@@ -104,7 +103,7 @@
               {{ ui.vnd(item.price) }}
             </td>
             <td class="py-2.5 px-4 text-right font-mono font-bold tabular-nums text-slate-900 whitespace-nowrap">
-              {{ ui.vnd(item.price + surcharge) }}
+              {{ ui.vnd(item.calculate_price()) }}
             </td>
             <td class="py-2.5 px-4 whitespace-nowrap">
               {{ ui.availability_badge(item.availability) }}

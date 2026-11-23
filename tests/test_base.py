@@ -46,18 +46,14 @@ class TestBaseProject(unittest.TestCase):
         self.assertEqual(len(manager.menu_items), 10)
         self.assertEqual(len(manager.orders), 5)
 
-        self.assertIsNone(manager.add_item(None))
-        self.assertIsNone(manager.update_item("FD01"))
-        self.assertIsNone(manager.delete_item("FD01"))
-        self.assertIsNone(manager.display_all_items())
-        self.assertIsNone(manager.adjust_price_and_status("FD01"))
+        self.assertEqual(len(manager.display_all_items()), 10)
         self.assertEqual(manager.search_by_id("FD01").item_id, "FD01")
         self.assertEqual(len(manager.search_by_criteria()), 10)
         self.assertEqual(len(manager.sort_items()), 10)
         self.assertEqual(manager.calculate_bill([]), 0)
-        self.assertIsNone(manager.stat_total_revenue())
-        self.assertIsNone(manager.stat_revenue_by_category())
-        self.assertIsNone(manager.stat_top_ordered_items())
+        self.assertGreater(manager.stat_total_revenue(), 0)
+        self.assertEqual(len(manager.stat_revenue_by_category()), 4)
+        self.assertEqual(len(manager.stat_top_ordered_items(limit=5)), 5)
 
     def test_flask_five_routes_render(self):
         client = app.test_client()

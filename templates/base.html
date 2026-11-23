@@ -264,13 +264,16 @@
         >
           Hủy bỏ
         </button>
-        <button
-          type="button"
-          @click="confirmDeleteDemo()"
-          class="btn-press px-3.5 py-1.5 rounded-md bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold"
-        >
-          Xóa khỏi danh sách
-        </button>
+        <form :action="deleteModal.actionUrl" method="post" class="inline">
+          <input type="hidden" name="action" :value="deleteModal.actionName" />
+          <input type="hidden" :name="deleteModal.fieldName" :value="deleteModal.code" />
+          <button
+            type="submit"
+            class="btn-press px-3.5 py-1.5 rounded-md bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold"
+          >
+            Xóa khỏi danh sách
+          </button>
+        </form>
       </div>
     </div>
   </div>
@@ -320,6 +323,14 @@
 
   <script>
     function bistroShell() {
+      const serverFlashes = [
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% for cat, msg in messages %}
+            { type: {{ cat | tojson }}, title: {{ ('Thành công' if cat == 'success' else 'Thông báo lỗi') | tojson }}, message: {{ msg | tojson }} },
+          {% endfor %}
+        {% endwith %}
+      ];
+
       return {
         sidebarOpen: false,
         toastMenuOpen: false,
@@ -328,11 +339,17 @@
           open: false,
           code: '',
           name: '',
+          actionUrl: '{{ url_for("manage_view") }}',
+          actionName: 'delete_item',
+          fieldName: 'item_id',
+        },
+        init() {
+          serverFlashes.forEach((f) => this.showToast(f));
         },
         showToast({ type = 'success', title = 'Thông báo', message = '' }) {
           const id = Date.now() + Math.random();
           this.toasts.push({ id, type, title, message });
-          setTimeout(() => this.dismissToast(id), 3500);
+          setTimeout(() => this.dismissToast(id), 4000);
         },
         dismissToast(id) {
           this.toasts = this.toasts.filter((t) => t.id !== id);
@@ -340,16 +357,10 @@
         openDeleteModal(detail) {
           this.deleteModal.code = detail.code || '';
           this.deleteModal.name = detail.name || '';
+          this.deleteModal.actionUrl = detail.actionUrl || '{{ url_for("manage_view") }}';
+          this.deleteModal.actionName = detail.actionName || 'delete_item';
+          this.deleteModal.fieldName = detail.fieldName || 'item_id';
           this.deleteModal.open = true;
-        },
-        confirmDeleteDemo() {
-          const code = this.deleteModal.code;
-          this.deleteModal.open = false;
-          this.showToast({
-            type: 'success',
-            title: 'Đã tiếp nhận yêu cầu',
-            message: `Đã gửi lệnh xóa mã ${code}.`,
-          });
         },
       };
     }

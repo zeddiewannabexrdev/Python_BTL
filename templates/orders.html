@@ -41,11 +41,12 @@
     <div class="flex-1 overflow-y-auto pos-scroll p-4">
       <div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-2.5">
         {% for item in items %}
+        {% set unit_price = item.calculate_price() %}
         <button
           type="button"
           x-show="selectedCat === '' || selectedCat === '{{ item.category_id }}'"
           {% if not item.availability %}disabled{% endif %}
-          @click="addItem('{{ item.item_id }}', '{{ item.item_name }}', {{ item.price }})"
+          @click="addItem('{{ item.item_id }}', '{{ item.item_name }}', {{ unit_price }})"
           class="pos-tile text-left bg-white border border-[#E2E8F0] border-l-4 {{ ui.cat_accent_border(item.category_id) }} rounded-md p-3 flex flex-col justify-between min-h-[118px] {% if not item.availability %}opacity-45 bg-slate-100 cursor-not-allowed{% else %}cursor-pointer{% endif %}"
         >
           <!-- Top Row: Code & Availability Dot -->
@@ -76,7 +77,7 @@
 
           <!-- Bottom Row: Price -->
           <div class="font-mono text-sm font-bold tabular-nums text-slate-900">
-            {{ ui.vnd(item.price) }}
+            {{ ui.vnd(unit_price) }}
           </div>
         </button>
         {% endfor %}
@@ -90,7 +91,7 @@
     <div class="bg-[#1E293B] text-white px-4 py-3 flex items-center justify-between gap-2 shrink-0">
       <div>
         <div class="text-[11px] uppercase tracking-wider text-slate-300 font-semibold">Phiếu thanh toán</div>
-        <div class="font-mono text-sm font-bold tabular-nums mt-0.5">Đơn mới · Bàn #04</div>
+        <div class="font-mono text-sm font-bold tabular-nums mt-0.5" x-text="nextOrderId + ' · ' + todayLabel"></div>
       </div>
 
       <div class="flex items-center bg-[#111827] rounded-md p-0.5 border border-slate-700">
@@ -108,7 +109,7 @@
           :class="panelTab === 'history' ? 'bg-[#FF4C00] text-white' : 'text-slate-300 hover:text-white'"
           class="px-2.5 py-1 rounded text-[11px] font-semibold transition-colors"
         >
-          Đã lập ({{ orders|length }})
+          Đã lập (<span x-text="historyOrders.length"></span>)
         </button>
       </div>
     </div>
@@ -164,7 +165,7 @@
           </div>
         </div>
 
-        <form action="{{ url_for('orders_view') }}" method="post" class="grid grid-cols-3 gap-2 pt-1">
+        <div class="grid grid-cols-3 gap-2 pt-1">
           <button
             type="button"
             @click="cart = []"
@@ -174,39 +175,39 @@
           </button>
           <button
             type="button"
-            @click="$dispatch('toast', { type: 'success', title: 'Đã lưu phiếu thanh toán', message: 'Tổng hóa đơn: ' + cartTotal.toLocaleString('vi-VN') + 'đ.' })"
-            class="btn-press col-span-2 py-2.5 px-3 rounded-md bg-[#FF4C00] hover:bg-[#E04300] text-white text-xs font-bold font-mono tabular-nums"
+            :disabled="submitting || cart.length === 0"
+            @click="submitOrder()"
+            class="btn-press col-span-2 py-2.5 px-3 rounded-md bg-[#FF4C00] hover:bg-[#E04300] disabled:opacity-50 text-white text-xs font-bold font-mono tabular-nums"
           >
             Thanh toán (<span x-text="cartTotal.toLocaleString('vi-VN') + 'đ'"></span>)
           </button>
-        </form>
+        </div>
       </div>
     </div>
 
-    <!-- Tab 2: 5 Sample Orders List (ORD01 - ORD05) -->
+    <!-- Tab 2: Live Orders List -->
     <div x-show="panelTab === 'history'" x-cloak class="flex-1 overflow-y-auto pos-scroll divide-y divide-[#E2E8F0]">
-      {% for ord in orders %}
-      <div class="p-4 hover:bg-slate-50 transition-colors space-y-2">
-        <div class="flex items-center justify-between">
-          <span class="font-mono text-xs font-bold text-slate-900">{{ ord.order_id }}</span>
-          <span class="font-mono text-[11px] text-slate-500 tabular-nums">{{ ord.order_date }}</span>
+      <template x-for="ord in historyOrders" :key="ord.order_id">
+        <div class="p-4 hover:bg-slate-50 transition-colors space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="font-mono text-xs font-bold text-slate-900" x-text="ord.order_id"></span>
+            <span class="font-mono text-[11px] text-slate-500 tabular-nums" x-text="ord.order_date"></span>
+          </div>
+          <div class="flex flex-wrap gap-1">
+            <template x-for="entry in ord.items" :key="entry.item_id">
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#F4F5F7] border border-[#E2E8F0] text-[11px] text-slate-700">
+                <span class="font-mono font-semibold" x-text="entry.item_id"></span>
+                <span x-text="entry.item_name"></span>
+                <span class="font-mono font-bold text-[#FF4C00]" x-text="'×' + entry.quantity"></span>
+              </span>
+            </template>
+          </div>
+          <div class="flex items-center justify-between pt-1 text-xs">
+            <span class="text-slate-500">Tổng thanh toán</span>
+            <span class="font-mono font-bold tabular-nums text-slate-900" x-text="ord.total.toLocaleString('vi-VN') + 'đ'"></span>
+          </div>
         </div>
-        <div class="flex flex-wrap gap-1">
-          {% for entry in ord["items"] %}
-          {% set m_item = item_map.get(entry.item_id) %}
-          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[#F4F5F7] border border-[#E2E8F0] text-[11px] text-slate-700">
-            <span class="font-mono font-semibold">{{ entry.item_id }}</span>
-            <span>{{ m_item.item_name if m_item else '' }}</span>
-            <span class="font-mono font-bold text-[#FF4C00]">×{{ entry.quantity }}</span>
-          </span>
-          {% endfor %}
-        </div>
-        <div class="flex items-center justify-between pt-1 text-xs">
-          <span class="text-slate-500">Tổng thanh toán</span>
-          <span class="font-mono font-bold tabular-nums text-slate-900">{{ ui.vnd(ord.total_bill) }}</span>
-        </div>
-      </div>
-      {% endfor %}
+      </template>
     </div>
   </aside>
 </div>
@@ -218,10 +219,11 @@
     return {
       selectedCat: '',
       panelTab: 'current',
-      cart: [
-        { item_id: 'FD01', item_name: 'Bò bít tết sốt tiêu đen', price: 245000, qty: 1 },
-        { item_id: 'DR01', item_name: 'Trà đào cam sả', price: 55000, qty: 2 },
-      ],
+      submitting: false,
+      nextOrderId: {{ next_order_id | tojson }},
+      todayLabel: {{ now_label | tojson }},
+      historyOrders: {{ orders | tojson }},
+      cart: [],
       get totalQty() {
         return this.cart.reduce((s, it) => s + it.qty, 0);
       },
@@ -236,6 +238,39 @@
           this.cart.push({ item_id: id, item_name: name, price, qty: 1 });
         }
         this.panelTab = 'current';
+      },
+      async submitOrder() {
+        if (this.cart.length === 0 || this.submitting) return;
+        this.submitting = true;
+        try {
+          const resp = await fetch('{{ url_for("orders_view") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              order_id: this.nextOrderId,
+              items: this.cart.map((c) => ({ item_id: c.item_id, quantity: c.qty })),
+            }),
+          });
+          const data = await resp.json();
+          if (!resp.ok || !data.ok) {
+            this.$dispatch('toast', { type: 'error', title: 'Không thể lập đơn', message: data.error || 'Lỗi không xác định' });
+            return;
+          }
+          this.historyOrders.unshift(data.order);
+          this.cart = [];
+          const nextNum = this.historyOrders.length + 1;
+          this.nextOrderId = 'ORD' + String(nextNum).padStart(2, '0');
+          this.panelTab = 'history';
+          this.$dispatch('toast', {
+            type: 'success',
+            title: 'Đã lưu phiếu ' + data.order_id,
+            message: 'Tổng thanh toán: ' + data.total.toLocaleString('vi-VN') + 'đ.',
+          });
+        } catch (err) {
+          this.$dispatch('toast', { type: 'error', title: 'Lỗi kết nối', message: String(err) });
+        } finally {
+          this.submitting = false;
+        }
       },
     };
   }
