@@ -2,7 +2,7 @@
 
 
 class MenuService:
-    """Mixin service managing menu items and categories."""
+    """Mixin service managing menu items and categories with MongoDB persistence."""
 
     def _find_item(self, item_id: str) -> MenuItem | None:
         return next((item for item in self._menu_items if item.item_id == item_id), None)
@@ -10,6 +10,23 @@ class MenuService:
     def _validate_category_exists(self, category_id: str) -> None:
         if self._categories and not any(c.category_id == category_id for c in self._categories):
             raise ValueError(f"Danh mục '{category_id}' không tồn tại.")
+
+    @staticmethod
+    def _serialize_item(item: MenuItem) -> dict:
+        doc = {
+            "item_id": item.item_id,
+            "item_name": item.item_name,
+            "price": float(item.price),
+            "category_id": item.category_id,
+            "availability": bool(item.availability),
+        }
+        if isinstance(item, FoodItem):
+            doc["item_type"] = "Food"
+            doc["preparation_time"] = int(item.preparation_time)
+        elif isinstance(item, DrinkItem):
+            doc["item_type"] = "Drink"
+            doc["size"] = item.size
+        return doc
 
     def add_item(self, item: MenuItem) -> MenuItem:
         if not isinstance(item, MenuItem):
@@ -21,6 +38,11 @@ class MenuService:
         if self._find_item(item.item_id) is not None:
             raise ValueError(f"Mã món '{item.item_id}' đã tồn tại trong thực đơn.")
         self._validate_category_exists(item.category_id)
+
+        db = getattr(self, "_db", None)
+        if db is not None:
+            db.menu_items.insert_one(self._serialize_item(item))
+
         self._menu_items.append(item)
         return item
 
@@ -46,12 +68,21 @@ class MenuService:
         if isinstance(item, DrinkItem) and "size" in kwargs and kwargs["size"] is not None:
             item.size = str(kwargs["size"])
 
+        db = getattr(self, "_db", None)
+        if db is not None:
+            db.menu_items.update_one({"item_id": item.item_id}, {"$set": self._serialize_item(item)})
+
         return item
 
     def delete_item(self, item_id: str) -> MenuItem:
         item = self._find_item(item_id)
         if item is None:
             raise ValueError(f"Không tìm thấy món có mã '{item_id}'.")
+
+        db = getattr(self, "_db", None)
+        if db is not None:
+            db.menu_items.delete_one({"item_id": item.item_id})
+
         self._menu_items.remove(item)
         return item
 
@@ -71,6 +102,11 @@ class MenuService:
             raise ValueError("Danh mục phải là thể hiện của Category.")
         if any(c.category_id == category.category_id for c in self._categories):
             raise ValueError(f"Mã danh mục '{category.category_id}' đã tồn tại.")
+
+        db = getattr(self, "_db", None)
+        if db is not None:
+            db.categories.insert_one(category.to_dict())
+
         self._categories.append(category)
         return category
 
@@ -83,5 +119,10 @@ class MenuService:
             raise ValueError(
                 f"Không thể xóa danh mục '{category_id}' vì đang có {len(linked)} món liên kết."
             )
+
+        db = getattr(self, "_db", None)
+        if db is not None:
+            db.categories.delete_one({"category_id": cat.category_id})
+
         self._categories.remove(cat)
         return cat

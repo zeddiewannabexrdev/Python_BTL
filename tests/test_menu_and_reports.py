@@ -7,13 +7,25 @@ from services import RestaurantManager
 
 class TestMenuServiceAndReports(unittest.TestCase):
     def setUp(self):
-        self.manager = RestaurantManager()
+        self.db_name = "restaurant_bistro_test_mr"
+        self.manager = RestaurantManager(db_name=self.db_name)
+
+    def tearDown(self):
+        self.manager._client.drop_database(self.db_name)
+        self.manager.close()
 
     def test_add_update_adjust_delete_item(self):
         new_food = FoodItem("FD99", "Cơm chiên hải sản", 125000, "CAT01", True, preparation_time=14)
         self.manager.add_item(new_food)
-        self.assertEqual(len(self.manager.display_all_items()), 11)
+        self.assertEqual(len(self.manager.display_all_items()), 81)
         self.assertEqual(self.manager.search_by_id("FD99").item_name, "Cơm chiên hải sản")
+
+        # Verify MongoDB persistence across fresh manager instance
+        reloaded = RestaurantManager(db_name=self.db_name, auto_seed=False)
+        try:
+            self.assertEqual(reloaded.search_by_id("FD99").item_name, "Cơm chiên hải sản")
+        finally:
+            reloaded.close()
 
         with self.assertRaises(ValueError):
             self.manager.add_item(new_food)
@@ -82,51 +94,55 @@ class TestMenuServiceAndReports(unittest.TestCase):
             self.manager.create_order("ORD-FOOD-SIZE", [{"item_id": "FD01", "quantity": 1, "size": "M"}])
 
     def test_flask_live_crud_and_pos_endpoints(self):
-        web_app.manager = RestaurantManager()
-        client = web_app.app.test_client()
+        old_manager = web_app.manager
+        web_app.manager = self.manager
+        try:
+            client = web_app.app.test_client()
 
-        resp = client.post(
-            "/manage",
-            data={
-                "action": "add_item",
-                "item_type": "drink",
-                "item_id": "DR99",
-                "item_name": "Matcha Latte",
-                "category_id": "CAT03",
-                "price": "50000",
-                "size": "L",
-                "availability": "on",
-            },
-            follow_redirects=True,
-        )
-        self.assertEqual(resp.status_code, 200)
-        self.assertIsNotNone(web_app.manager.search_by_id("DR99"))
+            resp = client.post(
+                "/manage",
+                data={
+                    "action": "add_item",
+                    "item_type": "drink",
+                    "item_id": "DR99",
+                    "item_name": "Matcha Latte",
+                    "category_id": "CAT03",
+                    "price": "50000",
+                    "size": "L",
+                    "availability": "on",
+                },
+                follow_redirects=True,
+            )
+            self.assertEqual(resp.status_code, 200)
+            self.assertIsNotNone(web_app.manager.search_by_id("DR99"))
 
-        order_resp = client.post(
-            "/orders",
-            json={"order_id": "ORD-WEB", "items": [{"item_id": "DR99", "quantity": 2, "size": "S"}]},
-        )
-        self.assertEqual(order_resp.status_code, 201)
-        data = order_resp.get_json()
-        self.assertTrue(data["ok"])
-        self.assertEqual(data["total"], 90000.0)
-        self.assertEqual(data["order"]["items"][0]["size"], "S")
+            order_resp = client.post(
+                "/orders",
+                json={"order_id": "ORD-WEB", "items": [{"item_id": "DR99", "quantity": 2, "size": "S"}]},
+            )
+            self.assertEqual(order_resp.status_code, 201)
+            data = order_resp.get_json()
+            self.assertTrue(data["ok"])
+            self.assertEqual(data["total"], 90000.0)
+            self.assertEqual(data["order"]["items"][0]["size"], "S")
 
-        stats_resp = client.get("/statistics")
-        self.assertEqual(stats_resp.status_code, 200)
-        self.assertIn("3.141.000đ", stats_resp.get_data(as_text=True))
+            stats_resp = client.get("/statistics")
+            self.assertEqual(stats_resp.status_code, 200)
+            self.assertIn("3.141.000đ", stats_resp.get_data(as_text=True))
 
-        search_resp = client.get("/search-sort?exact_id=DR99")
-        self.assertEqual(search_resp.status_code, 200)
-        self.assertIn("Matcha Latte", search_resp.get_data(as_text=True))
+            search_resp = client.get("/search-sort?exact_id=DR99")
+            self.assertEqual(search_resp.status_code, 200)
+            self.assertIn("Matcha Latte", search_resp.get_data(as_text=True))
 
-        del_resp = client.post(
-            "/manage",
-            data={"action": "delete_item", "item_id": "DR99"},
-            follow_redirects=True,
-        )
-        self.assertEqual(del_resp.status_code, 200)
-        self.assertIsNone(web_app.manager.search_by_id("DR99"))
+            del_resp = client.post(
+                "/manage",
+                data={"action": "delete_item", "item_id": "DR99"},
+                follow_redirects=True,
+            )
+            self.assertEqual(del_resp.status_code, 200)
+            self.assertIsNone(web_app.manager.search_by_id("DR99"))
+        finally:
+            web_app.manager = old_manager
 
 
 if __name__ == "__main__":

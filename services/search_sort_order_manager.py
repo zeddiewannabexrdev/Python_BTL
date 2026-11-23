@@ -115,6 +115,9 @@ class SearchSortOrderManager(QueryService, OrderReportService):
     def create_order(self, order_id: str, items: list[dict]) -> float:
         if not isinstance(order_id, str) or not order_id.strip():
             raise ValueError("order_id must be a non-empty string")
+        order_id = order_id.strip()
+        if any(existing.order_id == order_id for existing in self._orders):
+            raise ValueError(f"Order '{order_id}' already exists")
 
         validated_lines = []
         for entry in items:
@@ -151,5 +154,9 @@ class SearchSortOrderManager(QueryService, OrderReportService):
             order.add_item_to_order(item, quantity)
 
         total = order.calculate_bill()
+        db = getattr(self, "_db", None)
+        if db is not None:
+            db.orders.insert_one(order.to_dict())
+
         self._orders.append(order)
         return total

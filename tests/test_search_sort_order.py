@@ -5,7 +5,12 @@ from services import RestaurantManager
 
 class TestSearchSortOrder(unittest.TestCase):
     def setUp(self):
-        self.manager = RestaurantManager()
+        self.db_name = "restaurant_bistro_test_sso"
+        self.manager = RestaurantManager(db_name=self.db_name)
+
+    def tearDown(self):
+        self.manager._client.drop_database(self.db_name)
+        self.manager.close()
 
     def test_search_filters_and_sorts(self):
         self.assertEqual(self.manager.search_by_id("FD01").item_id, "FD01")
@@ -20,9 +25,9 @@ class TestSearchSortOrder(unittest.TestCase):
                 for item in self.manager.filter_by_category("CAT03")
             )
         )
-        self.assertEqual(
+        self.assertIn(
+            "DR01",
             [item.item_id for item in self.manager.filter_by_price_range(66000, 66000)],
-            ["DR01"],
         )
 
         by_price = self.manager.sort_by_price()

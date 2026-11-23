@@ -35,25 +35,32 @@ class TestBaseProject(unittest.TestCase):
         order.add_item_to_order(food, 1)
         self.assertEqual(order.calculate_bill(), 65000.0)
 
-    def test_restaurant_manager_inheritance_and_mock_data(self):
+    def test_restaurant_manager_inheritance_and_mongodb_seed(self):
         self.assertTrue(issubclass(RestaurantManager, MenuService))
         self.assertTrue(issubclass(RestaurantManager, QueryService))
         self.assertTrue(issubclass(RestaurantManager, OrderReportService))
         self.assertTrue(issubclass(RestaurantManager, SearchSortOrderManager))
 
-        manager = RestaurantManager()
-        self.assertEqual(len(manager.categories), 4)
-        self.assertEqual(len(manager.menu_items), 10)
-        self.assertEqual(len(manager.orders), 5)
+        manager = RestaurantManager(db_name="restaurant_bistro_test")
+        try:
+            self.assertEqual(len(manager.categories), 4)
+            self.assertEqual(len(manager.menu_items), 80)
+            for cat in manager.categories:
+                cat_count = len([i for i in manager.menu_items if i.category_id == cat.category_id])
+                self.assertEqual(cat_count, 20)
+            self.assertEqual(len(manager.orders), 5)
 
-        self.assertEqual(len(manager.display_all_items()), 10)
-        self.assertEqual(manager.search_by_id("FD01").item_id, "FD01")
-        self.assertEqual(len(manager.search_by_criteria()), 10)
-        self.assertEqual(len(manager.sort_items()), 10)
-        self.assertEqual(manager.calculate_bill([]), 0)
-        self.assertGreater(manager.stat_total_revenue(), 0)
-        self.assertEqual(len(manager.stat_revenue_by_category()), 4)
-        self.assertEqual(len(manager.stat_top_ordered_items(limit=5)), 5)
+            self.assertEqual(len(manager.display_all_items()), 80)
+            self.assertEqual(manager.search_by_id("FD01").item_id, "FD01")
+            self.assertEqual(len(manager.search_by_criteria()), 80)
+            self.assertEqual(len(manager.sort_items()), 80)
+            self.assertEqual(manager.calculate_bill([]), 0)
+            self.assertGreater(manager.stat_total_revenue(), 0)
+            self.assertEqual(len(manager.stat_revenue_by_category()), 4)
+            self.assertEqual(len(manager.stat_top_ordered_items(limit=5)), 5)
+        finally:
+            manager._client.drop_database("restaurant_bistro_test")
+            manager.close()
 
     def test_flask_five_routes_render(self):
         client = app.test_client()
