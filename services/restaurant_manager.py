@@ -4,17 +4,15 @@ from pathlib import Path
 from models import Category, DrinkItem, FoodItem, Order
 
 from .menu_service import MenuService
-from .order_report_service import OrderReportService
-from .query_service import QueryService
+from .search_sort_order_manager import SearchSortOrderManager
 
 
-class RestaurantManager(MenuService, QueryService, OrderReportService):
-    """Unified service facade inheriting MenuService, QueryService, and OrderReportService."""
+class RestaurantManager(MenuService, SearchSortOrderManager):
+    """Unified service facade for menu, search, sorting, and order operations."""
 
     def __init__(self, mock_filepath: str = "data/mock_data.json") -> None:
         self._categories: list[Category] = []
-        self._menu_items: list[FoodItem | DrinkItem] = []
-        self._orders: list[Order] = []
+        super().__init__()
         self._raw_orders: list[dict] = []
         self.load_mock_data(mock_filepath)
 
